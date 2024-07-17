@@ -25,6 +25,11 @@ print_welcome_message() {
 
 
 install_golang() {
+    if [[ -f "${INSTALL_DIR}/bin/go" ]]; then
+        echo -e "${RED}${BOLD}[ERROR] Golang installation already present at:${STOP_COLOR} '${HOME}/go/bin/go'"
+        exit 1
+    fi
+
     echo -e "\n${MAGENTA}${BOLD}[STAGE-1] Version selection${STOP_COLOR}"
 
     echo -e "${BLUE}${BOLD}[LIST] Select the Golang version from the below list.${STOP_COLOR}"
