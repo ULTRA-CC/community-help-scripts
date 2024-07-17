@@ -1,107 +1,181 @@
 #!/bin/bash
 
-# Python 3 and Pip Installer for Ultra.cc services by Itachi
-# This installs python 3, pip and pyenv on your slot using pyenv
+APPNAME="Python"
+VERSION="2024-07-17"
 
-# Unofficial Script warning
-clear
-echo "This is the Python and PIP Installer!"
-echo ""
-printf "\033[0;31mDisclaimer: This installer is unofficial and Ultra.cc staff will not support any issues with it\033[0m\n"
-read -r -p "Type confirm if you wish to continue: " input
-if [ ! "$input" = "confirm" ]; then
-    exit
-fi
+BOLD=$(tput bold)
+BLUE=$(tput setaf 4)
+RED=$(tput setaf 1)
+CYAN=$(tput setaf 6)
+YELLOW=$(tput setaf 3)
+MAGENTA=$(tput setaf 5)
+GREEN=$(tput setaf 2)
+STOP_COLOR=$(tput sgr0)
 
-# Install pyenv
+INSTALL_DIR="$HOME/.pyenv"
+TMPDIR_LOCATION="$HOME/.tmp/rust-$(date +%Y%m%d-%H%M%S)"
 
-echo "Installing pyenv..."
-sleep 1
-curl https://pyenv.run | bash
 
-# Add pyenv to .profile
-grep -qxF 'export PYENV_ROOT="$HOME/.pyenv"' "${HOME}/.profile" || echo 'export PYENV_ROOT="$HOME/.pyenv"' >>"${HOME}/.profile"
-# Check value present or not if not add it
-grep -qxF 'export PATH="$PYENV_ROOT/bin:$PATH"' "${HOME}/.profile" || echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >>"${HOME}/.profile"
-#  Check value present or not if not add it
-grep -qxF 'eval "$(pyenv init --path)"' "${HOME}/.profile" || echo 'eval "$(pyenv init --path)"' >>"${HOME}/.profile"
-# Add pyenv to .bashrc
-# Check value present or not if not add it
-# grep -qxF "eval \"\$(pyenv init -)\"" "${HOME}/.bashrc" || echo 'eval "$(pyenv init -)"' >> "${HOME}/.bashrc"
+print_welcome_message() {
+    term_width=$(tput cols)
+    welcome_message="[[ Welcome to the unofficial ${APPNAME} script ]]"
+    padding=$(printf '%*s' $(((term_width-${#welcome_message}) / 2)) '')
+    echo -e "\n${CYAN}${BOLD}${padding}${welcome_message}${STOP_COLOR}\n"
+}
 
-# Load new profile
-source "${HOME}/.profile"
-# Load new bashrc
-# source "${HOME}/.bashrc"
 
-# Install xxenv-latest
-git clone https://github.com/momo-lab/xxenv-latest.git "$(pyenv root)"/plugins/pyenv-latest
+spinner() {
+    local pid=$1
+    local delay=0.1
+    local spinstr='⠋⠙⠸⠴⠦⠇'
+    local i=0
+    while ps -p $pid > /dev/null 2>&1; do
+        i=$(( (i+1) % 6 ))
+        printf " [%s]  " "${spinstr:$i:1}"
+        sleep $delay
+        printf "\b\b\b\b\b\b"
+    done
+    printf "    \b\b\b\b"
+}
 
-# Python Version Chooser
-clear
-echo "Choose between 3.8, 3.9, 3.10, latest or 2.7."
-echo "1 = Python 3.8"
-echo "2 = Python 3.9"
-echo "3 = Python 3.10"
-echo "4 = Latest Python 3 release"
-echo "5 = Python 2.7"
-echo "We recommend using Python 3.8 as your default Python version."
 
-while true; do
-    read -r -p "Enter your response here: " pyver
-    case $pyver in
+install_python() {
+    if [[ -d "$INSTALL_DIR" ]]; then
+        echo -e "${RED}${BOLD}[ERROR] ${APPNAME} installation using pyenv already present at:${STOP_COLOR} '${INSTALL_DIR}'"
+        exit 1
+    fi
+
+    echo -e "${MAGENTA}${BOLD}[STAGE-1] Installing pyenv${STOP_COLOR}"
+    sleep 1
+    curl https://pyenv.run 2>/dev/null | bash >/dev/null 2>&1 &
+    spinner $!
+    wait $!
+
+    grep -qxF 'export PYENV_ROOT="$HOME/.pyenv"' "${HOME}/.profile" || echo 'export PYENV_ROOT="$HOME/.pyenv"' >>"${HOME}/.profile"
+    grep -qxF 'export PATH="$PYENV_ROOT/bin:$PATH"' "${HOME}/.profile" || echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >>"${HOME}/.profile"
+    grep -qxF 'eval "$(pyenv init --path)"' "${HOME}/.profile" || echo 'eval "$(pyenv init --path)"' >>"${HOME}/.profile"
+    source "${HOME}/.profile"
+
+    git clone https://github.com/momo-lab/xxenv-latest.git "$(pyenv root)"/plugins/pyenv-latest >/dev/null 2>&1 &
+    spinner $!
+    wait $!
+
+    echo -e "\n${MAGENTA}${BOLD}[STAGE-2] Python version selection${STOP_COLOR}"
+    echo -e "\n${BLUE}${BOLD}[LIST] Python versions available for install:${STOP_COLOR}"
+    echo "1) Python 3.8"
+    echo "2) Python 3.9"
+    echo "3) Python 3.10"
+    echo "4) Latest Python 3 release"
+    echo "5) Python 2.7"
+    echo -e "${YELLOW}[INFO] We recommend Python 3.8 to select as default version.\n"
+
+    read -rp "${BLUE}${BOLD}[INPUT REQUIRED] Enter your version choice${STOP_COLOR} '[1-5]'${BLUE}${BOLD}: ${STOP_COLOR}" SELECTED_PYTHON_VERSION
+
+    case "$SELECTED_PYTHON_VERSION" in
         1)
-            "$HOME"/.pyenv/bin/pyenv install 3.8
+            "$HOME"/.pyenv/bin/pyenv install 3.8 >/dev/null 2>&1 &
+            spinner $!
+            wait $!
             pyenv global 3.8
-            break
-        ;;
+            ;;
         2)
-            "$HOME"/.pyenv/bin/pyenv install 3.9
+            "$HOME"/.pyenv/bin/pyenv install 3.9 >/dev/null 2>&1 &
+            spinner $!
+            wait $!
             pyenv global 3.9
-            break
-        ;;
+            ;;
         3)
-            "$HOME"/.pyenv/bin/pyenv install 3.10
+            "$HOME"/.pyenv/bin/pyenv install 3.10 >/dev/null 2>&1 &
+            spinner $!
+            wait $!
             pyenv global 3.10
-            break
-        ;;
+            ;;
         4)
             latest_version=$(pyenv install --list | awk '$1 ~ /^[0-9]+\.[0-9]+\.[0-9]+$/ {latest=$1} END {print latest}')
-            "$HOME"/.pyenv/bin/pyenv install $latest_version
+            "$HOME"/.pyenv/bin/pyenv install $latest_version >/dev/null 2>&1 &
+            spinner $!
+            wait $!
             pyenv global $latest_version
-            break
-        ;;
+            ;;
         5)
-            "$HOME"/.pyenv/bin/pyenv install 2.7
+            "$HOME"/.pyenv/bin/pyenv install 2.7 >/dev/null 2>&1 &
+            spinner $!
+            wait $!
             break
-        ;;
+            ;;
         *)
-            echo "Invalid Option. Try again..."
-        ;;
+            echo -e "${RED}{BOLD}[ERROR] Invalid choice. Please enter a number between 1 and 3.${STOP_COLOR}"
+            exit 1
+            ;;
     esac
-done
 
-# Check Python
-clear
-echo "Getting python version..."
-command -v python
-python -m pip -V
-sleep 2
 
-# Updating all pip packages
+    INSTALLED_PYTHON_PATH=$(pyenv which python 2>&1)
+    INSTALLED_VERSION=$(${INSTALLED_PYTHON_PATH} -V 2>&1)
+    INSTALLED_PIP_VERSION=$(${INSTALLED_PYTHON_PATH} -m pip -V)
 
-echo "Updating all pip packages..."
-pip install --upgrade pip
-pip install pip-review --auto
-pip-review --auto
-pip list --format=freeze | cut -d'=' -f1 | xargs -n1 pip install --upgrade
+    if [[ -f ${INSTALLED_PYTHON_PATH} ]]; then
+        echo -e "${YELLOW}${BOLD}[INFO] Installed Python version:${STOP_COLOR} '${INSTALLED_VERSION}'"
+    else
+        echo -e "${RED}${BOLD}[ERROR] Unable to install ${APPNAME} using pyenv at:${STOP_COLOR} '${INSTALLED_PYTHON_PATH}'"
+        exit 1
+    fi
 
-#Cleanup and Exit
-clear
-echo "Done. Install successful."
-echo "Please execute the SSH command given below to load your newly installed python."
-printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' -
-echo "source ~/.profile"
-printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' -
-echo
-exit
+    echo -e "\n${MAGENTA}${BOLD}[STAGE-3] Update pip packages${STOP_COLOR}"
+    pip install --upgrade pip >/dev/null 2>&1
+    pip install pip-review --auto >/dev/null 2>&1
+    pip-review --auto >/dev/null 2>&1
+    pip list --format=freeze | cut -d'=' -f1 | xargs -n1 pip install --upgrade >/dev/null 2>&1
+
+    echo -e "${YELLOW}${BOLD}[INFO] Installed pip version:${STOP_COLOR}\n${INSTALLED_PIP_VERSION}"
+
+    echo -e "\n${GREEN}${BOLD}[SUCCESS] ${APPNAME} installation using pyenv has been completed.${STOP_COLOR}"
+}
+
+
+uninstall_python() {
+    echo -e "${YELLOW}${BOLD}[INFO] Uninstalling ${APPNAME} started ...${STOP_COLOR}"
+
+    sed -i '/export PYENV_ROOT="\$HOME\/.pyenv"/d; /export PATH="\$PYENV_ROOT\/bin:\$PATH"/d; /eval "\$(pyenv init --path)"/d' "${HOME}/.profile"
+
+    rm -rf "${INSTALL_DIR}"
+
+    if [[ ! -d "${INSTALL_DIR}" ]]; then
+        echo -e "\n${GREEN}${BOLD}[SUCCESS] ${APPNAME} has been uninstalled completely.${NORMAL}\n"
+        exec "$SHELL"
+    else
+        echo -e "${RED}${BOLD}[ERROR] ${APPNAME} could not be fully uninstalled."
+    fi
+
+}
+
+main_fn() {
+    clear
+    print_welcome_message
+    echo -e "${YELLOW}${BOLD}[WARNING] Disclaimer: This is an unofficial script and is not supported by Ultra.cc staff. Please proceed only if you are experienced with managing such custom installs on your own.${STOP_COLOR}\n"
+
+    echo -e "${BLUE}${BOLD}[LIST] Operations available for ${APPNAME}:${STOP_COLOR}"
+    echo "1) Install"
+    echo -e "2) Uninstall\n"
+
+    read -rp "${BLUE}${BOLD}[INPUT REQUIRED] Enter your operation choice${STOP_COLOR} '[1-2]'${BLUE}${BOLD}: ${STOP_COLOR}" OPERATION_CHOICE
+    echo
+
+    # Check user choice and execute function
+    case "$OPERATION_CHOICE" in
+        1)
+            install_${APPNAME,,}
+            ;;
+        2)
+            uninstall_${APPNAME,,}
+            ;;
+        *)
+            echo -e "${RED}{BOLD}[ERROR] Invalid choice. Please enter a number 1 or 2.${STOP_COLOR}"
+            exit 1
+            ;;
+    esac
+}
+
+
+# Call the main function
+main_fn
