@@ -1,109 +1,104 @@
 #!/bin/bash
 
-# Colors
+APPNAME="Rust"
+VERSION="2024-07-17"
+
+BOLD=$(tput bold)
+BLUE=$(tput setaf 4)
 RED=$(tput setaf 1)
+CYAN=$(tput setaf 6)
+YELLOW=$(tput setaf 3)
+MAGENTA=$(tput setaf 5)
 GREEN=$(tput setaf 2)
-NORMAL=$(tput sgr0)
+STOP_COLOR=$(tput sgr0)
 
-color_read() {
-    local prompt="$1"
-    local color1="$2"
-    local color2="$3"
-
-    echo -e "${color1}${prompt}${color2}"
-}
-
-printf "${RED}Welcome to the Rust Installation Script.\n"
-printf "Disclaimer: This installer is unofficial and not officially supported.${NORMAL}\n\n"
-
-echo "Please select the action you wish to perform:"
-echo "   - Type 'install' (without quotes) to proceed with the installation."
-echo "   - Type 'uninstall' (without quotes) to remove the script from your system."
-
-read -r -p "$(color_read 'Enter your choice: ' ${GREEN} ${NORMAL})" input
-
-RUST_INSTALL_DIR="$HOME/.cargo"
-
-# Define the Rust version and download URL
+INSTALL_DIR="$HOME/rust"
+TMPDIR_LOCATION="$HOME/.tmp/rust-$(date +%Y%m%d-%H%M%S)"
 RUST_VERSION="1.75.0"
 RUST_TAR_URL="https://static.rust-lang.org/dist/rust-${RUST_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
 
-# Define the installation directory
-INSTALL_DIR="$HOME/.rustc"
-TMP_DIR="$HOME/.tmp"
+
+print_welcome_message() {
+    term_width=$(tput cols)
+    welcome_message="[[ Welcome to the unofficial ${APPNAME} script ]]"
+    padding=$(printf '%*s' $(((term_width-${#welcome_message}) / 2)) '')
+    echo -e "\n${CYAN}${BOLD}${padding}${welcome_message}${STOP_COLOR}\n"
+}
+
 
 install_rust() {
-    # Create installation directory if it doesn't exist
-    mkdir -p "${INSTALL_DIR}"
+    if [[ -d "$INSTALL_DIR/rustc" ]] || [[ -d "$INSTALL_DIR/cargo" ]]; then
+        echo -e "${RED}${BOLD}[ERROR] ${APPNAME} installation already present at:${STOP_COLOR} '${INSTALL_DIR}/rustc' & '$INSTALL_DIR/cargo'"
+        exit 1
+    fi
 
-    # Create temp directory if it doesn't exist
-    mkdir -p "${TMP_DIR}"
+    echo -e "${MAGENTA}${BOLD}[STAGE-1] Installation started for ${APPNAME}${STOP_COLOR}"
+    mkdir -p "$INSTALL_DIR"
 
-    # Download and extract Rust
-    echo "Downloading Rust ${RUST_VERSION}..."
-    wget "${RUST_TAR_URL}" -O "${TMP_DIR}/rust.tar.gz"
-    tar -xzf "${TMP_DIR}/rust.tar.gz" -C "${TMP_DIR}"
+    mkdir -p "$TMPDIR_LOCATION"
 
-    # Move the binary to INSTALL_DIR
-    mv "${TMP_DIR}/rust-${RUST_VERSION}-x86_64-unknown-linux-gnu"/* "${INSTALL_DIR}"
+    wget "${RUST_TAR_URL}" -O "${TMPDIR_LOCATION}/rust.tar.gz" >/dev/null 2>&1
+    tar -xzf "${TMPDIR_LOCATION}/rust.tar.gz" -C "${TMPDIR_LOCATION}" >/dev/null 2>&1
 
-    # Remove the downloaded tarball and temp directory
-    rm -rf "${TMP_DIR}"
+    mv "${TMPDIR_LOCATION}/rust-${RUST_VERSION}-x86_64-unknown-linux-gnu"/* "${INSTALL_DIR}"
+    rm -rf "${TMPDIR_LOCATION}"
 
-    # Add Rust binary paths to PATH in ~/.bashrc
-    echo 'export PATH="$PATH:'"$HOME/.rustc/rustc/bin"'"' >> "$HOME/.bashrc"
-    echo 'export PATH="$PATH:'"$HOME/.rustc/cargo/bin"'"' >> "$HOME/.bashrc"
-    
-    source "$HOME/.bashrc"
+    if [[ -d "$INSTALL_DIR/rustc" ]] || [[ -d "$INSTALL_DIR/cargo" ]]; then
+        echo -e "${YELLOW}${BOLD}[INFO] ${APPNAME} binary present at:${STOP_COLOR} '${INSTALL_DIR}'"
+    else
+        echo -e "${RED}${BOLD}[ERROR] ${APPNAME} binary NOT found at ${STOP_COLOR}'${INSTALL_DIR}'${RED}${BOLD}. Terminating the script ... Bye!${STOP_COLOR}"
+        exit 1
+    fi
 
-    # Display Rust version
-    echo "Rust ${RUST_VERSION} has been installed. Please restart your shell or run 'source ~/.bashrc' to use it."
+    echo 'export PATH="$PATH:'"$HOME/rust/rustc/bin"'"' >> "$HOME/.bashrc"
+    echo 'export PATH="$PATH:'"$HOME/rust/cargo/bin"'"' >> "$HOME/.bashrc"
 
+    echo -e "${GREEN}${BOLD}[SUCCESS] ${APPNAME} installed successfully with version${STOP_COLOR} '${RUST_VERSION}'"
+    exec "$SHELL"
 }
 
-yes_no() {
-    local user_choice
-    while true; do
-        read -rp "$(color_read 'Enter your choice (Yes/No): ' ${GREEN} ${NORMAL})" user_choice
-        case $user_choice in
-            [Yy]|[Yy][Ee][Ss])
-                return 0
-                ;;
-            [Nn]|[Nn][Oo])
-                echo "Operation cancelled."
-                exit 0
-                ;;
-            *)
-                echo "Invalid option. Please enter 'Yes' or 'No'."
-                ;;
-        esac
-    done
+
+uninstall_rust() {
+    echo -e "${YELLOW}${BOLD}[INFO] Uninstalling ${APPNAME} started ...${STOP_COLOR}"
+    rm -rf "$INSTALL_DIR"
+    sed -i '/\/home\/[a-zA-Z0-9_]*\/\.rustc\/rustc\/bin/d; /\/home\/[a-zA-Z0-9_]*\/\.rustc\/cargo\/bin/d' "${HOME}/.bashrc"
+
+    if [[ ! -d "$INSTALL_DIR" ]]; then
+        echo -e "\n${GREEN}${BOLD}[SUCCESS] ${APPNAME} has been uninstalled completely.${NORMAL}\n"
+        exec "$SHELL"
+    else
+        echo -e "${RED}${BOLD}[ERROR] ${APPNAME} could not be fully uninstalled."
+    fi
 }
 
-uninstaller() {
-    echo "Are you sure you want to uninstall Rust?: "
-    yes_no
-    echo "Uninstalling Rust..."
 
-    # Remove Rust Binaries
-    rm -rf "${INSTALL_DIR}"
+main_fn() {
+    clear
+    print_welcome_message
+    echo -e "${YELLOW}${BOLD}[WARNING] Disclaimer: This is an unofficial script and is not supported by Ultra.cc staff. Please proceed only if you are experienced with managing such custom installs on your own.${STOP_COLOR}\n"
 
-    # Remove Rust installation
-    rm -rf "$HOME/.rustc"
+    echo -e "${BLUE}${BOLD}[LIST] Operations available for ${APPNAME}:${STOP_COLOR}"
+    echo "1) Install"
+    echo -e "2) Uninstall\n"
 
-    # Remove Rust binary paths from PATH in ~/.bashrc
-    sed -i '/\/home\/[a-zA-Z0-9_]*\/\.rustc\/rustc\/bin/d; /\/home\/[a-zA-Z0-9_]*\/\.rustc\/cargo\/bin/d' ~/.bashrc
+    read -rp "${BLUE}${BOLD}[INPUT REQUIRED] Enter your operation choice${STOP_COLOR} '[1-2]'${BLUE}${BOLD}: ${STOP_COLOR}" OPERATION_CHOICE
+    echo
 
-    source "$HOME/.bashrc"
-
-    printf "\n${GREEN}[-] Rust has been uninstalled.${NORMAL}\n"
+    # Check user choice and execute function
+    case "$OPERATION_CHOICE" in
+        1)
+            install_${APPNAME,,}
+            ;;
+        2)
+            uninstall_${APPNAME,,}
+            ;;
+        *)
+            echo -e "${RED}{BOLD}[ERROR] Invalid choice. Please enter a number 1 or 2.${STOP_COLOR}"
+            exit 1
+            ;;
+    esac
 }
 
-if [ "$input" = "install" ]; then
-    install_rust
-elif [ "$input" = "uninstall" ]; then
-    uninstaller
-else
-    printf "\n${RED}Invalid input. Exiting...${NORMAL}\n"
-    exit 1
-fi
+
+# Call the main function
+main_fn
