@@ -87,7 +87,7 @@ install_ruby() {
     rm -rf "${TMPDIR_LOCATION}"
     echo 'export PATH="$HOME/ruby/bin:$PATH"' >> ~/.bashrc
     sleep 2
-    echo "Ruby installed successfully with version ${RUBY_VERSION}"
+    echo -e "${GREEN}${BOLD}[SUCCESS] ${APPNAME} installed successfully with version${STOP_COLOR} '${RUBY_VERSION}'"
     exec "$SHELL"
 }
 
