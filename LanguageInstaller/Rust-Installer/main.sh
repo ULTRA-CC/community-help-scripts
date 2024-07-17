@@ -61,7 +61,8 @@ install_rust() {
 uninstall_rust() {
     echo -e "${YELLOW}${BOLD}[INFO] Uninstalling ${APPNAME} started ...${STOP_COLOR}"
     rm -rf "$INSTALL_DIR"
-    sed -i '/\/home\/[a-zA-Z0-9_]*\/\.rustc\/rustc\/bin/d; /\/home\/[a-zA-Z0-9_]*\/\.rustc\/cargo\/bin/d' "${HOME}/.bashrc"
+    sed -i '/export PATH="\$PATH:\/home\/[^\/]*\/rust\/rustc\/bin"/d' "${HOME}/.bashrc"
+    sed -i '/export PATH="\$PATH:\/home\/[^\/]*\/rust\/cargo\/bin"/d' "${HOME}/.bashrc"
 
     if [[ ! -d "$INSTALL_DIR" ]]; then
         echo -e "\n${GREEN}${BOLD}[SUCCESS] ${APPNAME} has been uninstalled completely.${NORMAL}\n"
