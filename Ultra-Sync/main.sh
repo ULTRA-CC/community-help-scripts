@@ -63,7 +63,7 @@ install_ultra-sync() {
     mv ${TMPDIR_LOCATION}/remote_sync_setup.py "${CONFIG_DIR}"/
 
     if [[ -f "${CONFIG_DIR}"/remote_sync_setup.py ]]; then
-        echo -e "${YELLOW}${BOLD}[INFO] Downloaded mandatory python scrtip at config location:${STOP_COLOR} '${CONFIG_DIR}/create_remote_dir.py'\n"
+        echo -e "${YELLOW}${BOLD}[INFO] Downloaded mandatory python script at config location:${STOP_COLOR} '${CONFIG_DIR}/create_remote_dir.py'\n"
     else
         echo -e "${RED}${BOLD}[ERROR] Failed to download mandatory python script in ${STOP_COLOR} '${CONFIG_DIR}'${RED}${BOLD}. Terminating the script ... Bye!"
         exit 1
@@ -93,7 +93,7 @@ install_ultra-sync() {
     ) | crontab -
 
     if crontab -l | grep Ultra-Sync; then
-        echo -e "${YELLOW}${BOLD}[INFO] Cronjob created for scrip to run at every 4TH Hour.${STOP_COLOR}\n"
+        echo -e "${YELLOW}${BOLD}[INFO] Cronjob created for script to run at every 4TH Hour.${STOP_COLOR}\n"
     else
         echo -e "${RED}${BOLD}[ERROR] Unable to create cronjob. Terminating the script ... Bye"
         exit 1

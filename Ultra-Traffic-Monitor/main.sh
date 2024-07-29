@@ -66,7 +66,7 @@ install_ultra-traffic-monitor() {
     ) | crontab -
 
     if crontab -l | grep Ultra-Traffic-Monitor; then
-        echo -e "${YELLOW}${BOLD}[INFO] Cronjob created for scrip to run at every ${time} minute!${STOP_COLOR}\n"
+        echo -e "${YELLOW}${BOLD}[INFO] Cronjob created for script to run at every ${time} minute!${STOP_COLOR}\n"
     else
         echo -e "${RED}${BOLD}[ERROR] Unable to create cronjob. Terminating the script ... Bye"
         exit 1

@@ -136,7 +136,7 @@ install_ultra-api() {
     mv ${TMPDIR_LOCATION}/stats_request.py "${CONFIG_DIR}"/
 
     if [[ -f "${CONFIG_DIR}"/stats_request.py ]]; then
-        echo -e "${YELLOW}${BOLD}[INFO] Downloaded mandatory python scrtip at config location:${STOP_COLOR} '${CONFIG_DIR}/stats_request.py'\n"
+        echo -e "${YELLOW}${BOLD}[INFO] Downloaded mandatory python script at config location:${STOP_COLOR} '${CONFIG_DIR}/stats_request.py'\n"
     else
         echo -e "${RED}${BOLD}[ERROR] Failed to download mandatory python script in ${STOP_COLOR} '${CONFIG_DIR}'${RED}${BOLD}. Terminating the script ... Bye!"
         exit 1
