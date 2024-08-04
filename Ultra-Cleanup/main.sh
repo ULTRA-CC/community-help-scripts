@@ -162,7 +162,7 @@ delete_config_ultra-cleanup() {
     for config in "${delete_config[@]}"; do
         rm -rf "$config_path/$config"
     done
-    echo -e "${SUCCESS}${BOLD}[SUCCESS] All torrent clients have been uninstalled and config files have been deleted${STOP_COLOR}"
+    echo -e "${GREEN}${BOLD}[SUCCESS] All torrent clients have been uninstalled and config files have been deleted${STOP_COLOR}"
 }
 
 delete_data_from_maindirectory_ultra-cleanup() {
