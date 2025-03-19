@@ -109,10 +109,8 @@ get_api_token_ultra-api() {
 
 
 install_ultra-api() {
-    if [ ! -d "$CONFIG_DIR" ]; then
-        mkdir -p "$CONFIG_DIR"
-        /usr/bin/python3 -m venv "$CONFIG_DIR"
-    fi
+    mkdir -p "$CONFIG_DIR"
+    /usr/bin/python3 -m venv "$CONFIG_DIR"
 
     mkdir -p ${TMPDIR_LOCATION}
 
