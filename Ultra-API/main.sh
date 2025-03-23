@@ -109,6 +109,15 @@ get_api_token_ultra-api() {
 
 
 install_ultra-api() {
+    #condition to check if auth token is already present
+    if [[ -f "$CONFIG_DIR/auth_tokens.db" ]]; then
+        auth_token=$(sqlite3 "$CONFIG_DIR/auth_tokens.db" "SELECT auth_token FROM tokens LIMIT 1;")
+        if [ -n "$auth_token" ]; then
+            echo -e "${YELLOW}${BOLD}[INFO] Script is already installed with API token:${STOP_COLOR} '${auth_token}'${YELLOW}${BOLD}. Please check directory:${STOP_COLOR} '${CONFIG_DIR}'${YELLOW}${BOLD} OR reinstall it.${STOP_COLOR}"
+            return 0
+        fi
+    fi
+
     mkdir -p "$CONFIG_DIR"
     /usr/bin/python3 -m venv "$CONFIG_DIR"
 
