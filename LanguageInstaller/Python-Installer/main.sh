@@ -62,46 +62,39 @@ install_python() {
 
     echo -e "\n${MAGENTA}${BOLD}[STAGE-2] Python version selection${STOP_COLOR}"
     echo -e "\n${BLUE}${BOLD}[LIST] Python versions available for install:${STOP_COLOR}"
-    echo "1) Python 3.8"
-    echo "2) Python 3.9"
-    echo "3) Python 3.10"
-    echo "4) Latest Python 3 release"
-    echo "5) Python 2.7"
-    echo -e "${YELLOW}[INFO] We recommend Python 3.8 to select as default version.\n"
+    echo "1) Python 3.9"
+    echo "2) Python 3.10"
+    echo "3) Latest Python 3 release"
+    echo "4) Python 2.7"
+    echo -e "${YELLOW}[INFO] We recommend Python 3.9 to select as default version.\n"
 
     read -rp "${BLUE}${BOLD}[INPUT REQUIRED] Enter your version choice${STOP_COLOR} '[1-5]'${BLUE}${BOLD}: ${STOP_COLOR}" SELECTED_PYTHON_VERSION
 
     case "$SELECTED_PYTHON_VERSION" in
         1)
-            "$HOME"/.pyenv/bin/pyenv install 3.8 >/dev/null 2>&1 &
-            spinner $!
-            wait $!
-            pyenv global 3.8
-            ;;
-        2)
             "$HOME"/.pyenv/bin/pyenv install 3.9 >/dev/null 2>&1 &
             spinner $!
             wait $!
             pyenv global 3.9
             ;;
-        3)
+        2)
             "$HOME"/.pyenv/bin/pyenv install 3.10 >/dev/null 2>&1 &
             spinner $!
             wait $!
             pyenv global 3.10
             ;;
-        4)
+        3)
             latest_version=$(pyenv install --list | awk '$1 ~ /^[0-9]+\.[0-9]+\.[0-9]+$/ {latest=$1} END {print latest}')
             "$HOME"/.pyenv/bin/pyenv install $latest_version >/dev/null 2>&1 &
             spinner $!
             wait $!
             pyenv global $latest_version
             ;;
-        5)
+        4)
             "$HOME"/.pyenv/bin/pyenv install 2.7 >/dev/null 2>&1 &
             spinner $!
             wait $!
-            break
+            return
             ;;
         *)
             echo -e "${RED}{BOLD}[ERROR] Invalid choice. Please enter a number between 1 and 3.${STOP_COLOR}"
