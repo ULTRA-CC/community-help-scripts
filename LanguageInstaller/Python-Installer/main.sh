@@ -65,8 +65,9 @@ install_python() {
     echo "1) Python 3.8"
     echo "2) Python 3.9"
     echo "3) Python 3.10"
-    echo "4) Latest Python 3 release"
-    echo "5) Python 2.7"
+    echo "4) Python 3.11"
+    echo "5) Latest Python 3 release"
+    echo "6) Python 2.7"
     echo -e "${YELLOW}[INFO] We recommend Python 3.8 to select as default version.\n"
 
     read -rp "${BLUE}${BOLD}[INPUT REQUIRED] Enter your version choice${STOP_COLOR} '[1-5]'${BLUE}${BOLD}: ${STOP_COLOR}" SELECTED_PYTHON_VERSION
@@ -91,13 +92,19 @@ install_python() {
             pyenv global 3.10
             ;;
         4)
+            "$HOME"/.pyenv/bin/pyenv install 3.11 >/dev/null 2>&1 &
+            spinner $!
+            wait $!
+            pyenv global 3.11
+            ;;
+        5)
             latest_version=$(pyenv install --list | awk '$1 ~ /^[0-9]+\.[0-9]+\.[0-9]+$/ {latest=$1} END {print latest}')
             "$HOME"/.pyenv/bin/pyenv install $latest_version >/dev/null 2>&1 &
             spinner $!
             wait $!
             pyenv global $latest_version
             ;;
-        5)
+        6)
             "$HOME"/.pyenv/bin/pyenv install 2.7 >/dev/null 2>&1 &
             spinner $!
             wait $!
