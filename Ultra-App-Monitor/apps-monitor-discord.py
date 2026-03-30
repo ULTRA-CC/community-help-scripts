@@ -214,6 +214,9 @@ class app_monitor():
         if "flaresolverr" in all_apps:
             docker_app.remove("flaresolverr")
             special_app.append("flaresolverr")
+        if "byparr" in all_apps:
+            docker_app.remove("byparr")
+            special_app.append("byparr")
         if "autobrr" in all_apps:
             docker_app.remove("autobrr")
             special_app.append("autobrr")
@@ -601,6 +604,23 @@ class app_monitor():
                     self.discord_notfication(webhook,"flaresolverr","App Restarted","50C878")
                     os.system("app-flaresolverr restart")
 
+    def Monitor_Byparr(self,apps,webhook):
+        if "byparr" in apps:
+            output = os.popen('app-ports show').read()
+            port_of_byparr = next((line.split()[0] for line in output.strip().split('\n') if "Byparr" in line), None)
+            url = "http://172.17.0.1:{}".format(port_of_byparr)
+            try:
+                response = requests.get(url)
+                if response.status_code == 200:
+                    pass
+                else:
+                    self.discord_notfication(webhook,"byparr","App Restarted","50C878")
+                    os.system("app-byparr restart")
+
+            except requests.RequestException as e:
+                    self.discord_notfication(webhook,"byparr","App Restarted","50C878")
+                    os.system("app-byparr restart")
+
 monitor = app_monitor()
 if __name__ == '__main__':
     # check if discord wehbhook file is exist return true if yes false if no
@@ -628,6 +648,7 @@ if __name__ == '__main__':
         monitor.monitor_resilio(apps2,webhook)
         monitor.monitor_autobrr(apps2,webhook)
         monitor.Monitor_FlareSolver(apps2,webhook)
+        monitor.Monitor_Byparr(apps2,webhook)
         monitor.monitor_jellyseerr(apps2,webhook)
     else:
         monitor.Discord_Notifications_Accepter()
