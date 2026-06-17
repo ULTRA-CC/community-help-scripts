@@ -13,7 +13,9 @@ GREEN=$(tput setaf 2)
 STOP_COLOR=$(tput sgr0)
 
 INSTALL_DIR="$HOME/.pyenv"
-TMPDIR_LOCATION="$HOME/.tmp/rust-$(date +%Y%m%d-%H%M%S)"
+TMPDIR_LOCATION="$HOME/.tmp/openssl-$(date +%Y%m%d-%H%M%S)"
+OPENSSL_VERSION="3.5.7"
+OPENSSL_PREFIX="$HOME/.pyenv/openssl-${OPENSSL_VERSION}"
 
 
 print_welcome_message() {
@@ -36,6 +38,35 @@ spinner() {
         printf "\b\b\b\b\b\b"
     done
     printf "    \b\b\b\b"
+}
+
+
+build_openssl() {
+    # Build a local OpenSSL 3 so a new CPython can compile ssl on OpenSSL 1.1.1 hosts.
+    if [[ -f "${OPENSSL_PREFIX}/lib/libssl.so" ]]; then
+        return 0
+    fi
+
+    echo -e "${YELLOW}${BOLD}[INFO] Building OpenSSL ${OPENSSL_VERSION} locally (required for the latest Python)...${STOP_COLOR}"
+    mkdir -p "$TMPDIR_LOCATION"
+    wget "https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz" -O "${TMPDIR_LOCATION}/openssl.tar.gz" >/dev/null 2>&1
+    tar -C "$TMPDIR_LOCATION" -xzf "${TMPDIR_LOCATION}/openssl.tar.gz" >/dev/null 2>&1
+
+    (
+        cd "${TMPDIR_LOCATION}/openssl-${OPENSSL_VERSION}" || exit 1
+        ./config --prefix="$OPENSSL_PREFIX" --openssldir="$OPENSSL_PREFIX" --libdir=lib shared
+        make -j"$(nproc 2>/dev/null || echo 1)"
+        make install_sw
+    ) >/dev/null 2>&1 &
+    spinner $!
+    wait $!
+
+    rm -rf "$TMPDIR_LOCATION"
+
+    if [[ ! -f "${OPENSSL_PREFIX}/lib/libssl.so" ]]; then
+        echo -e "${RED}${BOLD}[ERROR] Failed to build local OpenSSL at:${STOP_COLOR} '${OPENSSL_PREFIX}'"
+        exit 1
+    fi
 }
 
 
@@ -102,6 +133,15 @@ install_python() {
             "$HOME"/.pyenv/bin/pyenv install $latest_version >/dev/null 2>&1 &
             spinner $!
             wait $!
+            # A brand-new CPython can fail to build ssl on hosts still on OpenSSL 1.1.1; retry against a local OpenSSL 3.
+            if ! "$HOME/.pyenv/versions/$latest_version/bin/python" -c 'import ssl' >/dev/null 2>&1; then
+                echo -e "${YELLOW}${BOLD}[INFO] Python ssl module unavailable with system OpenSSL; rebuilding with a local OpenSSL 3...${STOP_COLOR}"
+                build_openssl
+                export PYTHON_CONFIGURE_OPTS="--with-openssl=${OPENSSL_PREFIX} --with-openssl-rpath=auto"
+                "$HOME"/.pyenv/bin/pyenv install -f $latest_version >/dev/null 2>&1 &
+                spinner $!
+                wait $!
+            fi
             pyenv global $latest_version
             ;;
         6)
