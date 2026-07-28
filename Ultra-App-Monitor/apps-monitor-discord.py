@@ -202,6 +202,9 @@ class app_monitor():
         if "jellyseerr" in all_apps:
             docker_app.remove("jellyseerr")
             special_app.append("jellyseerr")
+        if "seerr" in all_apps:
+            docker_app.remove("seerr")
+            special_app.append("seerr")
         if "jdownloader2" in all_apps:
             docker_app.remove("jdownloader2")
             special_app.append("jdownloader2")
@@ -621,6 +624,23 @@ class app_monitor():
                     self.discord_notfication(webhook,"byparr","App Restarted","50C878")
                     os.system("app-byparr restart")
 
+    def Monitor_Seerr(self,apps,webhook):
+        if "seerr" not in apps:
+            return
+        output = os.popen('app-ports show').read()
+        # [1:2] not [1]: the header and blank rows have no second field
+        port_of_seerr = next((line.split()[0] for line in output.strip().split('\n') if line.split()[1:2] == ["Seerr"]), None)
+        if port_of_seerr is None:
+            return  # no port row, a restart would not fix that
+        url = "http://172.17.0.1:{}/api/v1/status".format(port_of_seerr)
+        try:
+            alive = requests.get(url, timeout=30).status_code == 200
+        except requests.RequestException:
+            alive = False
+        if not alive:
+            self.discord_notfication(webhook,"seerr","App Restarted","50C878")
+            os.system("app-seerr restart")
+
 monitor = app_monitor()
 if __name__ == '__main__':
     # check if discord wehbhook file is exist return true if yes false if no
@@ -650,5 +670,6 @@ if __name__ == '__main__':
         monitor.Monitor_FlareSolver(apps2,webhook)
         monitor.Monitor_Byparr(apps2,webhook)
         monitor.monitor_jellyseerr(apps2,webhook)
+        monitor.Monitor_Seerr(apps2,webhook)
     else:
         monitor.Discord_Notifications_Accepter()

@@ -154,6 +154,9 @@ class app_monitor():
         if "jellyseerr" in all_apps:
             docker_app.remove("jellyseerr")
             special_app.append("jellyseerr")
+        if "seerr" in all_apps:
+            docker_app.remove("seerr")
+            special_app.append("seerr")
         if "flaresolverr" in all_apps:
             docker_app.remove("flaresolverr")
         return docker_app,special_app
@@ -627,6 +630,25 @@ class app_monitor():
                         f.write('flaresolverr was down and has been RESTARTED'+"\n")
                     os.system("app-flaresolverr restart")
 
+    def Monitor_Seerr(self,apps):
+        if "seerr" not in apps:
+            return
+        output = os.popen('app-ports show').read()
+        # [1:2] not [1]: the header and blank rows have no second field
+        port_of_seerr = next((line.split()[0] for line in output.strip().split('\n') if line.split()[1:2] == ["Seerr"]), None)
+        if port_of_seerr is None:
+            return  # no port row, a restart would not fix that
+        url = "http://172.17.0.1:{}/api/v1/status".format(port_of_seerr)
+        try:
+            alive = requests.get(url, timeout=30).status_code == 200
+        except requests.RequestException:
+            alive = False
+        if not alive:
+            with open(log_file, "a") as f:
+                f.write("\nTIME: "+current_time+"\n")
+                f.write('seerr was down and has been RESTARTED'+"\n")
+            os.system("app-seerr restart")
+
 
 monitor = app_monitor()
 if __name__ == '__main__':
@@ -650,3 +672,4 @@ if __name__ == '__main__':
     monitor.bazarr_monitor()
     monitor.monitor_resilio(apps2)
     monitor.Monitor_FlareSolver(apps2)
+    monitor.Monitor_Seerr(apps2)
