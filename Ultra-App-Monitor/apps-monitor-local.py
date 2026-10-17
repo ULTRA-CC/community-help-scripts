@@ -3,6 +3,10 @@ import time
 import datetime
 import requests
 import socket
+
+# cron sets no XDG_RUNTIME_DIR, without it systemctl --user prints nothing
+os.environ.setdefault("XDG_RUNTIME_DIR", "/run/user/{}".format(os.getuid()))
+
 """
 Data and time to store restart time of application
 """
@@ -71,7 +75,8 @@ class app_monitor():
 
     def system_check(self, apps):
         status1 = os.popen("systemctl --user status | grep 'State:'").read()
-        status1 = status1.split(":")[1].replace(' ', '').replace("\n","")
+        # [-1] not [1], the State line is missing when systemctl --user fails
+        status1 = status1.split(":")[-1].replace(' ', '').replace("\n","")
         if status1 == "running":
             pass
         if status1 == "degraded":
@@ -159,6 +164,10 @@ class app_monitor():
             special_app.append("seerr")
         if "flaresolverr" in all_apps:
             docker_app.remove("flaresolverr")
+            special_app.append("flaresolverr")
+        if "byparr" in all_apps:
+            docker_app.remove("byparr")
+            special_app.append("byparr")
         return docker_app,special_app
 
     def sql_based_apps(self, path):
@@ -612,10 +621,13 @@ class app_monitor():
     def Monitor_FlareSolver(self,apps):
         if "flaresolverr" in apps:
             output = os.popen('app-ports show').read()
+            # rows look like "12345 Flaresolverr"
             port_of_flaresolverr = next((line.split()[0] for line in output.strip().split('\n') if "Flaresolverr" in line), None)
+            if port_of_flaresolverr is None:
+                return  # no port row, a restart would not fix that
             url = "http://172.17.0.1:{}".format(port_of_flaresolverr)
             try:
-                response = requests.get(url)
+                response = requests.get(url, timeout=30)
                 if response.status_code == 200:
                     pass
                 else:
@@ -629,6 +641,27 @@ class app_monitor():
                         f.write("\nTIME: "+current_time+"\n")
                         f.write('flaresolverr was down and has been RESTARTED'+"\n")
                     os.system("app-flaresolverr restart")
+
+    def Monitor_Byparr(self,apps):
+        if "byparr" not in apps:
+            return
+        output = os.popen('app-ports show').read()
+        # rows look like "12345 Byparr"
+        # [1:2] not [1]: the header and blank rows have no second field
+        port_of_byparr = next((line.split()[0] for line in output.strip().split('\n') if line.split()[1:2] == ["Byparr"]), None)
+        if port_of_byparr is None:
+            return  # no port row, a restart would not fix that
+        # not /health, that fetches google.com and can 500 while Byparr is up
+        url = "http://172.17.0.1:{}".format(port_of_byparr)
+        try:
+            alive = requests.get(url, timeout=30).status_code == 200
+        except requests.RequestException:
+            alive = False
+        if not alive:
+            with open(log_file, "a") as f:
+                f.write("\nTIME: "+current_time+"\n")
+                f.write('byparr was down and has been RESTARTED'+"\n")
+            os.system("app-byparr restart")
 
     def Monitor_Seerr(self,apps):
         if "seerr" not in apps:
@@ -672,4 +705,5 @@ if __name__ == '__main__':
     monitor.bazarr_monitor()
     monitor.monitor_resilio(apps2)
     monitor.Monitor_FlareSolver(apps2)
+    monitor.Monitor_Byparr(apps2)
     monitor.Monitor_Seerr(apps2)
