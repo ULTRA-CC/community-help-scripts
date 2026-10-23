@@ -455,22 +455,25 @@ class app_monitor():
 
     def monitor_jdownloader(self, apps,webhook):
         if "jdownloader2" in apps:
+            # ps aux: user 42 0.0 0.0 1234 512 ? S 00:00 0:00 /opt/base/bin/openbox
             status = os.popen(
-                "ps aux | grep /usr/bin/openbox | grep -v grep ").read()
+                "ps aux | grep -E '/(usr|opt/base)/bin/openbox' | grep -v grep ").read()
             count = len(status.splitlines())
             if count == 0:
                 os.system("app-jdownloader2 restart")
                 self.discord_notfication(webhook,"jdownloader2","App Restarted","50C878")
                 time.sleep(180)
+                # ps aux: user 42 0.0 0.0 1234 512 ? S 00:00 0:00 /opt/base/bin/openbox
                 status = os.popen(
-                    "ps aux | grep /usr/bin/openbox | grep -v grep ").read()
+                    "ps aux | grep -E '/(usr|opt/base)/bin/openbox' | grep -v grep ").read()
                 count = len(status.splitlines())
                 if count <= 0:
                     os.system("app-jdownloader2 restart")
                     self.discord_notfication(webhook,"jdownloader2","App Restarted 2nd attempt","50C878")
                     time.sleep(50)
+                    # ps aux: user 42 0.0 0.0 1234 512 ? S 00:00 0:00 /opt/base/bin/openbox
                     status = os.popen(
-                        "ps aux | grep /usr/bin/openbox | grep -v grep ").read()
+                        "ps aux | grep -E '/(usr|opt/base)/bin/openbox' | grep -v grep ").read()
                     count = len(status.splitlines())
                     if count <= 0:
                         self.discord_notfication(webhook,"jdownloader2","Failed","C70039",True)
