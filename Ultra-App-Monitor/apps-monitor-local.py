@@ -449,7 +449,7 @@ class app_monitor():
     def monitor_jdownloader(self, apps):
         if "jdownloader2" in apps:
             status = os.popen(
-                "ps aux | grep /usr/bin/openbox | grep -v grep ").read()
+                "ps aux | grep -E '/(usr|opt/base)/bin/openbox' | grep -v grep ").read()
             count = len(status.splitlines())
             if count == 0:
                 os.system("app-jdownloader2 restart")
@@ -459,7 +459,7 @@ class app_monitor():
                 os.system("clear")
                 time.sleep(180)
                 status = os.popen(
-                    "ps aux | grep /usr/bin/openbox | grep -v grep ").read()
+                    "ps aux | grep -E '/(usr|opt/base)/bin/openbox' | grep -v grep ").read()
                 count = len(status.splitlines())
                 if count <= 0:
                     os.system("app-jdownloader2 restart")
@@ -470,7 +470,7 @@ class app_monitor():
                     os.system("clear")
                     time.sleep(50)
                     status = os.popen(
-                        "ps aux | grep /usr/bin/openbox | grep -v grep ").read()
+                        "ps aux | grep -E '/(usr|opt/base)/bin/openbox' | grep -v grep ").read()
                     count = len(status.splitlines())
                     if count <= 0:
                         with open(log_file, "a") as f:
