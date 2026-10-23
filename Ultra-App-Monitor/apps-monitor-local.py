@@ -439,7 +439,6 @@ class app_monitor():
 
     def monitor_jdownloader(self, apps):
         if "jdownloader2" in apps:
-            # ps aux: user 42 0.0 0.0 1234 512 ? S 00:00 0:00 /opt/base/bin/openbox
             status = os.popen(
                 "ps aux | grep -E '/(usr|opt/base)/bin/openbox' | grep -v grep ").read()
             count = len(status.splitlines())
@@ -450,7 +449,6 @@ class app_monitor():
                     f.write('Jdownloader2 was down and has been RESTARTED'+"\n")
                 os.system("clear")
                 time.sleep(180)
-                # ps aux: user 42 0.0 0.0 1234 512 ? S 00:00 0:00 /opt/base/bin/openbox
                 status = os.popen(
                     "ps aux | grep -E '/(usr|opt/base)/bin/openbox' | grep -v grep ").read()
                 count = len(status.splitlines())
@@ -462,7 +460,6 @@ class app_monitor():
                             'jdownloader2 was down and has been RESTARTED(2nd attempt)'+"\n")
                     os.system("clear")
                     time.sleep(50)
-                    # ps aux: user 42 0.0 0.0 1234 512 ? S 00:00 0:00 /opt/base/bin/openbox
                     status = os.popen(
                         "ps aux | grep -E '/(usr|opt/base)/bin/openbox' | grep -v grep ").read()
                     count = len(status.splitlines())
