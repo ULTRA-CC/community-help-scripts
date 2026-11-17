@@ -279,8 +279,9 @@ class app_monitor():
 
     def sql_app_monitor(self, apps):
         for i in apps:
-            if i == "nextlcoud":
-                status = os.popen("ps aux | grep -i '/usr/local/bin/supercronic /etc/crontabs/abc' | grep -v grep".format(i)).read()
+            # no nextcloud process has its name in ps; every image's svc-cron runs this argv
+            if i == "nextcloud":
+                status = os.popen("ps aux | grep -i '/usr/local/bin/supercronic /config/crontabs/abc' | grep -v grep".format(i)).read()
                 count = len(status.splitlines())    
             else:
                 status = os.popen("ps aux | grep -i {} | grep -v grep".format(i)).read()
@@ -293,8 +294,8 @@ class app_monitor():
                     os.system("clear")
 
                 time.sleep(30)
-                if i == "nextlcoud":
-                    status = os.popen("ps aux | grep -i '/usr/local/bin/supercronic /etc/crontabs/abc' | grep -v grep".format(i)).read()
+                if i == "nextcloud":
+                    status = os.popen("ps aux | grep -i '/usr/local/bin/supercronic /config/crontabs/abc' | grep -v grep".format(i)).read()
                     count = len(status.splitlines())    
                 else:
                     status = os.popen("ps aux | grep -i {} | grep -v grep".format(i)).read()
