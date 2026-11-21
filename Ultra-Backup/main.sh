@@ -42,7 +42,7 @@ install_ultra-backup() {
     fi
 
     echo -e "${MAGENTA}${BOLD}[STAGE-1] Download and execute mandatory python script${STOP_COLOR}"
-    wget -qO ${TMPDIR_LOCATION}/backup.py https://scripts.usbx.me/util-v2/Ultra-Backup/backup.py >/dev/null 2>&1
+    wget -qO ${TMPDIR_LOCATION}/backup.py https://scripts.ultra.cc/util-v2/Ultra-Backup/backup.py >/dev/null 2>&1
 
     mv ${TMPDIR_LOCATION}/backup.py "${CONFIG_DIR}"/
 

@@ -138,7 +138,7 @@ install_ultra-api() {
     fi
 
     echo -e "${MAGENTA}${BOLD}[STAGE-2] Download mandatory python script & Port selection${STOP_COLOR}"
-    wget -qO ${TMPDIR_LOCATION}/stats_request.py https://scripts.usbx.me/util-v2/Ultra-API/stats_request.py >/dev/null 2>&1
+    wget -qO ${TMPDIR_LOCATION}/stats_request.py https://scripts.ultra.cc/util-v2/Ultra-API/stats_request.py >/dev/null 2>&1
 
     mv ${TMPDIR_LOCATION}/stats_request.py "${CONFIG_DIR}"/
 
@@ -150,7 +150,7 @@ install_ultra-api() {
     fi
 
     # Call port_picker function
-    wget -qO ${TMPDIR_LOCATION}/port-selector.sh https://scripts.usbx.me/main-v2/BaseFunctions/port-selector/main.sh
+    wget -qO ${TMPDIR_LOCATION}/port-selector.sh https://scripts.ultra.cc/main-v2/BaseFunctions/port-selector/main.sh
     source ${TMPDIR_LOCATION}/port-selector.sh
 
     port="${SELECTED_PORT}"

@@ -50,7 +50,7 @@ install_ultra-version-notifier() {
     echo -e "${YELLOW}${BOLD}[INFO] Python environment ready at:${STOP_COLOR} '${CONFIG_DIR}'\n"
 
     echo -e "${MAGENTA}${BOLD}[STAGE-2] Downloading monitoring script...${STOP_COLOR}"
-    wget -qO "${CONFIG_DIR}/main.py" https://scripts.usbx.me/util-v2/Ultra-Version-Notifier/main.py
+    wget -qO "${CONFIG_DIR}/main.py" https://scripts.ultra.cc/util-v2/Ultra-Version-Notifier/main.py
 
     echo -e "${MAGENTA}${BOLD}[STAGE-3] Initializing setup...${STOP_COLOR}"
     "${CONFIG_DIR}/bin/python3" "${CONFIG_DIR}/main.py" webhook-input

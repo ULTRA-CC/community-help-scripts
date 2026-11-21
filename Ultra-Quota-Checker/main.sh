@@ -50,7 +50,7 @@ install_ultra-quota-checker() {
     fi
 
     echo -e "${MAGENTA}${BOLD}[STAGE-2] Download and make mandatory python scripts executable${STOP_COLOR}"
-    wget -qO ${TMPDIR_LOCATION}/checker.py https://scripts.usbx.me/util-v2/Ultra-Quota-Checker/checker.py >/dev/null 2>&1
+    wget -qO ${TMPDIR_LOCATION}/checker.py https://scripts.ultra.cc/util-v2/Ultra-Quota-Checker/checker.py >/dev/null 2>&1
 
     mv ${TMPDIR_LOCATION}/checker.py "${CONFIG_DIR}"/
 
