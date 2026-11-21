@@ -15,7 +15,9 @@ STOP_COLOR=$(tput sgr0)
 CONFIG_DIR="$HOME/scripts/Ultra-API"
 BIN_DIR="$HOME/bin"
 TMPDIR_LOCATION="$HOME/.tmp/ultra-api-$(date +%Y%m%d-%H%M%S)"
+# older installs ran in a screen session with this name
 SCREEN_NAME="Ultra-API"
+SERVICE_FILE="${HOME}/.config/systemd/user/ultra-api.service"
 NGINX_FILE="${HOME}/.apps/nginx/proxy.d/ultra-api.conf"
 
 
@@ -28,12 +30,10 @@ print_welcome_message() {
 
 
 nginx_conf_install_ultra-api() {
-    hostname=$HOSTNAME
-
     cat <<EOF | tee "${NGINX_FILE}" >/dev/null
 location /ultra-api {
     rewrite /ultra-api(/.*) \$1 break;
-    proxy_pass http://${hostname}-direct.usbx.me:${port};
+    proxy_pass http://127.0.0.1:${port};
 
     proxy_set_header Host \$host;
     proxy_set_header X-Real-IP \$remote_addr;
@@ -92,6 +92,42 @@ EOF
         echo -e "${YELLOW}${BOLD}[INFO] ${SCRIPTNAME} Auth DB created at ${STOP_COLOR}'${CONFIG_DIR}/auth_tokens.db' ${YELLOW}${BOLD}with token:${STOP_COLOR} '${auth_token}'"
     else
         echo -e "${RED}${BOLD}[ERROR] ${SCRIPTNAME} Auth DB file NOT found at ${STOP_COLOR}'${CONFIG_DIR}/auth_tokens.db'${RED}${BOLD}. Terminating the script ... Bye!${STOP_COLOR}"
+        exit 1
+    fi
+}
+
+
+service_install_ultra-api() {
+    # a systemd user unit comes back after a node reboot, a screen session does not
+    screen -X -S "$SCREEN_NAME" kill >/dev/null 2>&1
+    mkdir -p "$(dirname "${SERVICE_FILE}")"
+
+    cat <<EOF > "${SERVICE_FILE}"
+[Unit]
+Description=Ultra-API stats endpoint
+
+[Service]
+WorkingDirectory=%h
+ExecStart=${CONFIG_DIR}/bin/python3 ${CONFIG_DIR}/stats_request.py
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
+EOF
+
+    systemctl --user daemon-reload
+    if ! systemctl --user enable --quiet ultra-api.service; then
+        echo -e "${RED}${BOLD}[ERROR] Could not enable the ${SCRIPTNAME} service, so it would not start again after a reboot.${STOP_COLOR}"
+        exit 1
+    fi
+    systemctl --user restart ultra-api.service
+
+    # Type=simple is active as soon as python forks, so wait for it to import Flask and bind before checking
+    sleep 5
+    if systemctl --user is-active --quiet ultra-api.service && [ "$(systemctl --user show -p NRestarts --value ultra-api.service)" = 0 ]; then
+        echo -e "${YELLOW}${BOLD}[INFO] ${SCRIPTNAME} service is running.${STOP_COLOR}"
+    else
+        echo -e "${RED}${BOLD}[ERROR] ${SCRIPTNAME} service failed to start. Check:${STOP_COLOR} 'systemctl --user status ultra-api'"
         exit 1
     fi
 }
@@ -173,15 +209,8 @@ install_ultra-api() {
     echo -e "\n${MAGENTA}${BOLD}[STAGE-4] Configure Auth DB for ${SCRIPTNAME}${STOP_COLOR}"
     create_auth_token_database_ultra-api
 
-    echo -e "\n${MAGENTA}${BOLD}[STAGE-5] Run ${SCRIPTNAME} script in screen${STOP_COLOR}"
-    screen -dmS $SCREEN_NAME "$CONFIG_DIR/bin/python3" "$CONFIG_DIR/stats_request.py"
-
-    if screen -list | grep -q "\.$SCREEN_NAME"; then
-        echo -e "${YELLOW}${BOLD}[INFO] Screen session $SCREEN_NAME is running.${STOP_COLOR}"
-    else
-        echo -e "${RED}${BOLD}[ERROR] Screen session $SCREEN_NAME failed to start.${STOP_COLOR}"
-        exit 1
-    fi
+    echo -e "\n${MAGENTA}${BOLD}[STAGE-5] Run ${SCRIPTNAME} as a systemd user service${STOP_COLOR}"
+    service_install_ultra-api
 
     echo -e "${GREEN}${BOLD}[SUCCESS] Ultra service API Endpoints to get your service stats:${STOP_COLOR}"
     echo -e "  ■ Complete stats.......:  \e]8;;$complete_stats_endpont\a$complete_stats_endpont\e]8;;\a"
@@ -191,7 +220,10 @@ install_ultra-api() {
 
 
 uninstall_ultra-api() {
-    screen -X -S $SCREEN_NAME kill
+    screen -X -S "$SCREEN_NAME" kill >/dev/null 2>&1
+    systemctl --user disable --now ultra-api.service >/dev/null 2>&1
+    rm -f "${SERVICE_FILE}"
+    systemctl --user daemon-reload
     rm -rf "$CONFIG_DIR"
     rm -rf  "${HOME}/.apps/nginx/proxy.d/ultra-api.conf"
     app-nginx restart
@@ -205,11 +237,8 @@ uninstall_ultra-api() {
 
 
 restart_ultra-api() {
-    # Kill old screen first
-    screen -X -S $SCREEN_NAME kill
-
-    # Create new screen and rerun script
-    screen -dmS $SCREEN_NAME "$CONFIG_DIR/bin/python3" "$CONFIG_DIR/stats_request.py"
+    # rewrites the unit too, so a screen-based install moves to systemd on its first restart
+    service_install_ultra-api
 }
 
 
