@@ -157,7 +157,7 @@ class QuotaCheck:
 
 
 if __name__ == '__main__':
-    work_dir = os.getcwd()
+    work_dir = os.path.expanduser("~")
     config_path = os.path.join(work_dir, 'bin')
     config_file = os.path.join(work_dir, 'scripts', 'Ultra-Quota-Checker', 'config.ini')
     log_file = os.path.join(work_dir, 'scripts', 'Ultra-Quota-Checker', 'quota.log')

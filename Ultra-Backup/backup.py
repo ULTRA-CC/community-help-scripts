@@ -11,7 +11,7 @@ import subprocess
 Variables declarated below
 """
 
-homedir = os.getcwd()
+homedir = os.path.expanduser("~")
 script_dir = os.path.join(homedir,'scripts/Ultra-Backup')
 backupdirectory = os.path.join(homedir, 'BackUpFolder')
 backupdestination = os.path.join(homedir, 'BackUpFolder/Config')
