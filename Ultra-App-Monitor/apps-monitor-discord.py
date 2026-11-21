@@ -87,7 +87,7 @@ class app_monitor():
         embed.add_embed_field(name="Application Name:", value=appname)
         embed.add_embed_field(name="Application Status:", value=status,inline=False)
         if fail:
-            embed.add_embed_field(name="Script unable to restart application {}".format(appname), value="https://my.ultra.cc/submitticket.php",inline=False)
+            embed.add_embed_field(name="Script unable to restart application {}".format(appname), value="Try Upgrade & Repair in the UCP Apps tab.",inline=False)
         webhook.add_embed(embed)
         response = webhook.execute()
     
@@ -320,7 +320,7 @@ class app_monitor():
             if count <= 2:
                 with open(log_file, "a") as f:
                     f.write(
-                        "\nScript is unable to FIX your {} so please open a support ticket from here - https://my.ultra.cc/submitticket.php\n".format(i))
+                        "\nScript is unable to FIX your {}. Try Upgrade & Repair in the UCP Apps tab.\n".format(i))
 
     def sql_app_monitor(self, apps,webhook):
         for i in apps:
