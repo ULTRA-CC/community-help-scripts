@@ -6,6 +6,7 @@ from datetime import datetime
 import logging
 import sys
 import subprocess
+import glob
 
 """
 Variables declarated below
@@ -17,6 +18,7 @@ backupdirectory = os.path.join(homedir, 'BackUpFolder')
 backupdestination = os.path.join(homedir, 'BackUpFolder/Config')
 Session_directory = os.path.join(homedir, 'BackUpFolder/Session_dir')
 desination_dir = "UltraBackupDir"
+upload_timeout_seconds = 6 * 60 * 60
 now = datetime.now()
 current_date = str(now.date())
 Upload_BackupFolder = os.path.join(homedir, "Ultra-Backup-" + current_date)
@@ -43,8 +45,9 @@ conifg_list = ['.apps/bazarr/db/bazarr.db', '.apps/bazarr/config/config.ini', '.
                '.config/deluge/core.conf', '.config/deluge/web.conf', '.config/deluge/execute.conf', '.autodl/autodl.cfg'
                ]
 
-plex_list = ['.config/plex/Library/Application\ Support/Plex\ Media\ Server/Preferences.xml', '.config/plex/Library/Application\ Support/Plex\ Media\ Server/Plug-in\ Support/Databases/com.plexapp.plugins.library.blobs.db',
-             '.config/plex/Library/Application\ Support/Plex\ Media\ Server/Plug-in\ Support/Databases/com.plexapp.plugins.library.db']
+plex_dir = '.config/plex/Library/Application Support/Plex Media Server'
+plex_list = [plex_dir + '/Preferences.xml', plex_dir + '/Plug-in Support/Databases/com.plexapp.plugins.library.blobs.db',
+             plex_dir + '/Plug-in Support/Databases/com.plexapp.plugins.library.db']
 
 session_state = ['.config/deluge/state/', '.config/transmission-daemon/torrents/',
                  '.config/rtorrent/session/', '.local/share/qBittorrent/BT_backup/']
@@ -85,14 +88,13 @@ def get_session_app_name(path):
     if "qBittorrent" in path:
         return "qBittorrent"
     
+def list_remotes():
+    # rclone listremotes prints one "gdrive:" per line
+    return subprocess.run(['rclone', 'listremotes'], stdout=subprocess.PIPE, text=True, check=True).stdout.splitlines()
+
 def remote_mount_name(file_path):
-    remote_list = os.popen("rclone listremotes | wc -l").read()
-    if "0" in remote_list:
-        pass
-    else:
-        remote_lists = os.popen("rclone listremotes").read()
     print("List of your remote mounts:")
-    print(remote_lists)
+    print("\n".join(list_remotes()))
     name = input("Please enter your rclone remote name [Example - gdrive]:")
     if ":" in name:
         name = name.replace(":", "")
@@ -100,13 +102,11 @@ def remote_mount_name(file_path):
         f.write(name)
 
 def read_remote_mount_name(file_path):
-    log_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logfile.log")
-    logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
         with open(file_path, 'r') as f:
-            return f.read()
+            return f.read().strip()
     else:
-        logging.warning("The Discord WebHook file is empty or doesn't exist.")
+        logging.error("The rclone remote name file {} is empty or missing.".format(file_path))
         sys.exit(1)
     
 def check_file_dir_exists(file_path,mode):
@@ -120,7 +120,20 @@ def check_file_dir_exists(file_path,mode):
         return False
     
 def Clean_up(path):
-    result = os.popen('rm -rf {}'.format(path)).read()
+    # rm -rf removes what it can and names every entry it cannot on stderr, which cron appends to ultra_backup.log
+    if subprocess.run(['rm', '-rf', '--', path]).returncode != 0:
+        logging.error("Could not fully remove {}".format(path))
+
+def copy_into(source, dest_dir):
+    # one unreadable or vanished file is logged and skipped, the rest of the backup still runs
+    os.makedirs(dest_dir, mode=0o755, exist_ok=True)
+    try:
+        if os.path.isdir(source):
+            shutil.copytree(source, os.path.join(dest_dir, os.path.basename(source.rstrip('/'))), dirs_exist_ok=True)
+        else:
+            shutil.copy(source, dest_dir)
+    except OSError as error:
+        logging.warning("Could not copy {}: {}".format(source, error))
     
 
 """
@@ -153,212 +166,81 @@ def config_exist(conifg_list):
 def plex_check(plex_list):
     for paths in plex_list:
         paths = os.path.join(homedir, paths)
-        result = os.popen('[ -f {} ] && echo -n 1'.format(paths)).read()
-        
-        if result == '1':
-            app_name = get_app_name(paths)
-            
-            if app_name in paths:
-                app_paths = os.path.join(backupdestination, app_name)
-                app_path_dest = app_paths + '/'
-                time.sleep(1)
-                
-                if not os.path.exists(app_paths):
-                    os.mkdir(app_paths, mode=0o755)
-                
-                try:
-                    # Use subprocess.run to execute the 'cp' command
-                    subprocess.run(['cp', '-rf', paths, app_path_dest], check=True, timeout=10)
-                
-                except subprocess.TimeoutExpired:
-                    # Kill the 'cp' process if it exceeds the timeout
-                    cp_process = subprocess.Popen(['cp', '-rf', paths, app_path_dest], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    cp_process.terminate()
-                    time.sleep(1)  # Wait for termination to take effect
-                    cp_process.kill()
-
-                    logging.warning("Timeout expired for Plex copy process. Killed.")
-                    return False
-
+        if os.path.isfile(paths):
+            copy_into(paths, os.path.join(backupdestination, get_app_name(paths)))
         else:
             print(paths, " not exist")
-    
-    return True    
+    return True
 
 
 def session_exit(session_state):
     for paths in session_state:
         paths = os.path.join(homedir, paths)
-        result = os.popen('[ -d {} ] && echo -n 1'.format(paths)).read()
-        
-        if result == '1':
-            app_name = get_session_app_name(paths)
-            
-            if app_name in paths:
-                app_paths = os.path.join(Session_directory, app_name)
-                destination_session = app_paths + "/"
-                
-                if not os.path.exists(app_paths):
-                    os.mkdir(app_paths, mode=0o755)
-                
-                try:
-                    # Use subprocess.run to execute the 'cp' command
-                    subprocess.run(['cp', '-rf', paths, destination_session], check=True, timeout=10)
-                
-                except subprocess.TimeoutExpired:
-                    # Kill the 'cp' process if it exceeds the timeout
-                    cp_process = subprocess.Popen(['cp', '-rf', paths, destination_session], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    cp_process.terminate()
-                    time.sleep(1)  # Wait for termination to take effect
-                    cp_process.kill()
-
-                    logging.warning("Timeout expired for session exit copy process. Killed.")
-                    return False
-
+        if os.path.isdir(paths):
+            copy_into(paths, os.path.join(Session_directory, get_session_app_name(paths)))
         else:
             print(paths, " not exist")
-    
     return True
 
 
 def Jacket_list(path):
     paths = os.path.join(homedir, path)
-    result = os.popen('[ -d {} ] && echo -n 1'.format(paths)).read()
-    
-    if result == '1':
-        app_name = 'jackett'
-        
-        if app_name in paths:
-            app_paths = os.path.join(backupdestination, app_name)
-            destination_session = app_paths + "/"
-            index_path = paths + "/*.json"
-            
-            if not os.path.exists(app_paths):
-                os.mkdir(app_paths, mode=0o755)
-                
-            try:
-                # Use subprocess.run to execute the 'cp' command
-                subprocess.run(['cp', '-rf', index_path, destination_session], check=True, timeout=10)
-            
-            except subprocess.TimeoutExpired:
-                # Kill the 'cp' process if it exceeds the timeout
-                cp_index_process = subprocess.Popen(['cp', '-rf', index_path, destination_session], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                cp_index_process.terminate()
-                time.sleep(1)  # Wait for termination to take effect
-                cp_index_process.kill()
-
-                logging.warning("Timeout expired for Jackett copy process. Killed.")
-                return False
-
-        return True
-    else:
+    if not os.path.isdir(paths):
         print(paths, " not exist")
         return False
+    for index_file in glob.glob(os.path.join(paths, '*.json')):
+        copy_into(index_file, os.path.join(backupdestination, 'jackett'))
+    return True
 
 
 def Deluge(path):
     paths = os.path.join(homedir, path)
-    result = os.popen('[ -d {} ] && echo -n 1'.format(paths)).read()
-    
-    if result == '1':
-        app_name = 'deluge'
-        
-        if app_name in paths:
-            app_paths = os.path.join(backupdestination, app_name)
-            destination_session = app_paths + "/"
-            conf_path = paths + "/*.conf"
-            back_path = paths + "/*.bak"
-            
-            if not os.path.exists(app_paths):
-                os.mkdir(app_paths, mode=0o755)
-                
-            try:
-                # Use subprocess.run to execute the 'cp' commands
-                subprocess.run(['cp', '-rf', conf_path, destination_session], check=True, timeout=10)
-                subprocess.run(['cp', '-rf', back_path, destination_session], check=True, timeout=10)
-
-            except subprocess.TimeoutExpired:
-                # Kill the 'cp' processes if they exceed the timeout
-                cp_conf_process = subprocess.Popen(['cp', '-rf', conf_path, destination_session], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                cp_back_process = subprocess.Popen(['cp', '-rf', back_path, destination_session], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                
-                cp_conf_process.terminate()
-                cp_back_process.terminate()
-                
-                time.sleep(1)  # Wait for termination to take effect
-                
-                cp_conf_process.kill()
-                cp_back_process.kill()
-
-                logging.warning("Timeout expired for Deluge copy process. Killed.")
-                return False
-
-        return True
-    else:
+    if not os.path.isdir(paths):
         print(paths, " not exist")
         return False
+    for config_file in glob.glob(os.path.join(paths, '*.conf')) + glob.glob(os.path.join(paths, '*.bak')):
+        copy_into(config_file, os.path.join(backupdestination, 'deluge'))
+    return True
 
-
-
-import subprocess
 
 def zip_backup_directory(source, destination):
     try:
-        # Use subprocess.run to execute the zip command
-        subprocess.run(['zip', '-0rq', destination, source], check=True, timeout=120)
-        
-        # Check if the zip file was created
-        if os.path.isfile(destination + '.zip'):
-            logging.info("Zip command succeeded.")
-            return True
-        else:
-            logging.warning("Zip command succeeded, but the zip file was not created.")
-            return False
-
-    except subprocess.TimeoutExpired:
-        # Kill the zip process if it exceeds the timeout
-        zip_process = subprocess.Popen(['zip', '-0rq', destination, source], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        zip_process.terminate()
-        time.sleep(1)  # Wait for termination to take effect
-        zip_process.kill()
-        logging.warning("Timeout expired for zip command process. Killed.")
+        # no timeout: a killed zip leaves its ziXXXXXX temp file behind in home
+        subprocess.run(['zip', '-0rq', destination, source], check=True)
+    except subprocess.CalledProcessError as error:
+        logging.error("zip failed with exit code {}.".format(error.returncode))
         return False
+    if os.path.isfile(destination + '.zip'):
+        logging.info("Zip command succeeded.")
+        return True
+    logging.warning("Zip command succeeded, but the zip file was not created.")
+    return False
 
 def rclone_copy_command(zip_file_path, mount_name, destination_dir):
     try:
-        # Use subprocess.run to execute the rclone copy command
-        result = subprocess.run(['rclone', '-P', 'copy', zip_file_path, f'{mount_name}:{destination_dir}', '--create-empty-src-dirs'], check=True, timeout=10, capture_output=True, text=True)
-
-        if "100%" in result.stdout:
-            logging.info("Rclone transfer successful.")
-            return True
-        else:
-            logging.error("Rclone transfer failed.")
-            return False
-
+        subprocess.run(['rclone', 'copy', zip_file_path, f'{mount_name}:{destination_dir}'], check=True, timeout=upload_timeout_seconds, capture_output=True, text=True)
     except subprocess.TimeoutExpired:
-        # Kill the rclone process if it exceeds the timeout
-        rclone_process = subprocess.Popen(['rclone', '-P', 'copy', zip_file_path, f'{mount_name}:{destination_dir}', '--create-empty-src-dirs'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        rclone_process.terminate()
-        time.sleep(1)  # Wait for termination to take effect
-        rclone_process.kill()
-        logging.warning("Timeout expired for rclone transfer process. Killed.")
+        # run() has already killed rclone by the time this is raised
+        logging.error("Rclone upload did not finish within {} seconds.".format(upload_timeout_seconds))
         return False
-
-
+    except subprocess.CalledProcessError as error:
+        logging.error("Rclone upload failed with exit code {}: {}".format(error.returncode, error.stderr.strip()))
+        return False
+    logging.info("Rclone transfer successful.")
+    return True
 
 
 if __name__ == '__main__':
-    # Create BackUp directory
     check_remote_file = check_file_dir_exists(remote_mount_file,'f')
     if not check_remote_file:
         remote_mount_name(remote_mount_file)
-    create_backup_dir()
-    check_dir = check_file_dir_exists(backupdirectory,'d')
-    remote_list = os.popen("rclone listremotes | wc -l").read()
-    if "0" in remote_list:
+    if not list_remotes():
         logging.error("A remote mount has not been configured; you must establish one before proceeding.")
         sys.exit(0)
+    mount_name = read_remote_mount_name(remote_mount_file)
+    # Create BackUp directory
+    create_backup_dir()
+    check_dir = check_file_dir_exists(backupdirectory,'d')
     if check_dir:
         # Copy all important files like DB,XML.Config etc to Back Up folder and create directory with app name
         config_exist(conifg_list)
@@ -370,34 +252,9 @@ if __name__ == '__main__':
         Jacket_list(jacket_list)
         # backup deluge .conf and .bak file
         Deluge(deluge_path)
-    # create a zip file of BackUp folder
-    output = zip_backup_directory(backupdirectory, Upload_BackupFolder)
-    # # return True if zip file is created and exist
-    if output:
-    #     # read mount name from file
-        mount_name = read_remote_mount_name(remote_mount_file)
-    #     # use rclone copy command and upload .zip file to google drive
-        upload_check = rclone_copy_command(Upload_BackupFolder + '.zip',mount_name)
-    #     # If upload is successful, return True
-        if upload_check:
-            # delete BackupDirectory
-            Clean_up(backupdirectory)
-            # delete backup directory .zip
-            Clean_up(Upload_BackupFolder + '.zip')
-        else: 
-            upload_check = rclone_copy_command(Upload_BackupFolder + '.zip',mount_name)
-    else:
-        output = zip_backup_directory(backupdirectory, Upload_BackupFolder)
-        if output:
-            # read mount name from file
-            mount_name = read_remote_mount_name(remote_mount_file)
-            # use rclone copy command and upload .zip file to google drive
-            upload_check = rclone_copy_command(Upload_BackupFolder + '.zip',mount_name)
-            # If upload is successful, return True
-            if upload_check:
-                # delete BackupDirectory
-                Clean_up(backupdirectory)
-                # delete backup directory .zip
-                Clean_up(Upload_BackupFolder + '.zip')
-       
- 
+    uploaded = zip_backup_directory(backupdirectory, Upload_BackupFolder) and rclone_copy_command(Upload_BackupFolder + '.zip', mount_name, desination_dir)
+    # remove the local copies even after a failed upload, or every week leaves another zip in home
+    Clean_up(backupdirectory)
+    Clean_up(Upload_BackupFolder + '.zip')
+    if not uploaded:
+        sys.exit(1)
