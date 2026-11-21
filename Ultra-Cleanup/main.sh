@@ -12,7 +12,9 @@ MAGENTA=$(tput setaf 5)
 GREEN=$(tput setaf 2)
 STOP_COLOR=$(tput sgr0)
 
-path=$(pwd)
+# every delete below is relative to home, never the caller's cwd
+cd "$HOME" || exit 1
+path="$HOME"
 apps_path="$path/.apps"
 config_path="$path/.config"
 files_path="$path/files"
@@ -122,14 +124,15 @@ uninstall_apps_directory_ultra-cleanup() {
         fi
     done
 
-    for app in "${delete_apps[@]}"; do
-        rm -rf "$apps_path/$app"
-    done
-
+    # uninstall first so each app is stopped before its folder goes
     for app in "${delete_apps[@]}"; do
         echo -e " [+] Uninstallation of $app has been started ..."
         app-"$app" uninstall >/dev/null 2>&1
         echo -e "  [+] $app successfully uninstalled!"
+    done
+
+    for app in "${delete_apps[@]}"; do
+        rm -rf "$apps_path/$app"
     done
     echo -e "${GREEN}${BOLD}[SUCCESS] Applications present in '$HOME/.apps' has been completed.${STOP_COLOR}"
 }
@@ -315,6 +318,15 @@ delete_custom_media_files_ultra-cleanup() {
     echo -e "${GREEN}${BOLD}[SUCCESS] '~/media' directory cleanup has been completed.${STOP_COLOR}"
 }
 
+confirm_operation() {
+    echo -e "${RED}${BOLD}[WARNING] Option $OPERATION_CHOICE permanently deletes data in '$HOME'. This cannot be undone.${STOP_COLOR}"
+    read -rp "${BLUE}${BOLD}[INPUT REQUIRED] Type 'confirm' to continue: ${STOP_COLOR}" CONFIRM_INPUT
+    if [ "$CONFIRM_INPUT" != "confirm" ]; then
+        echo -e "${GREEN}${BOLD}[INFO] Nothing was deleted. ${SCRIPTNAME} has been terminated.${STOP_COLOR}"
+        exit 1
+    fi
+}
+
 main_fn() {
     clear
     print_welcome_message
@@ -331,6 +343,7 @@ main_fn() {
 
     case "$OPERATION_CHOICE" in
         1)
+            confirm_operation
             unmount_rclone_ultra-cleanup
             remove_extra_directory_ultra-cleanup "$path"
             uninstall_apps_directory_ultra-cleanup "$apps_path"
@@ -344,10 +357,12 @@ main_fn() {
             finalfix_ultra-cleanup
             ;;
         2)
+            confirm_operation
             remove_extra_directory_ultra-cleanup "$path"
             finalfix_ultra-cleanup
             ;;
         3)
+            confirm_operation
             uninstall_apps_directory_ultra-cleanup "$apps_path"
             delete_config_ultra-cleanup "$config_path"
             stop_systemd_app_ultra-cleanup "$systemd_app"
@@ -357,6 +372,7 @@ main_fn() {
             finalfix_ultra-cleanup
             ;;
         4)
+            confirm_operation
             delete_data_from_maindirectory_ultra-cleanup "$movie_path" "$tv_path" "$music_path" "$book_path" "$files_path" "$downloads_path"
             delete_custom_media_files_ultra-cleanup "$media"
             finalfix_ultra-cleanup
