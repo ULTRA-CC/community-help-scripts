@@ -20,6 +20,13 @@ config_path = work_dir + '/bin'
 systemd_path = work_dir + '/.config/systemd/user/'
 Discord_WebHook_File = '{}/scripts/Ultra-App-Monitor/discord.txt'.format(work_dir)
 torrent_client = []
+# kernel process names (cut to 15 chars); rtorrent 0.16 renames itself rtorrent-main
+process_names = {
+    'deluge': 'deluged',
+    'transmission': 'transmission-da',
+    'qbittorrent': 'qbittorrent-nox',
+    'rtorrent': 'rtorrent|rtorrent-main',
+}
 wehook = ""
 
 class app_monitor():
@@ -71,25 +78,23 @@ class app_monitor():
         if count <= 0:
             os.system("app-nginx restart")
             
+    def is_running(self, app):
+        # exact name match, so the *_pub wrapper units no longer count as the client
+        return os.system("pgrep -u {} -x '{}' > /dev/null".format(os.getuid(), process_names[app])) == 0
+
     def torrent_client_fixing(self, apps,webhook):
         for i in apps:
-            status = os.popen("ps aux | grep -i {}".format(i)).read()
-            count = len(status.splitlines())
-            if count <= 2:
+            if not self.is_running(i):
                 os.system("app-{} restart".format(i))
                 self.discord_notfication(webhook,i,"App Restarted","50C878")
             else:
                 pass
             time.sleep(2)
-            status = os.popen("ps aux | grep -i {}".format(i)).read()
-            count = len(status.splitlines())
-            if count <= 2:
+            if not self.is_running(i):
                 os.system("app-{} repair".format(i))
                 self.discord_notfication(webhook,i,"App Repaired","50C878")
             time.sleep(2)
-            status = os.popen("ps aux | grep -i {}".format(i)).read()
-            count = len(status.splitlines())
-            if count <= 2:
+            if not self.is_running(i):
                self.discord_notfication(webhook,i,"Failed","C70039",True)
 
 
