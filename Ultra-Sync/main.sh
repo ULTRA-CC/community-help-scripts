@@ -72,23 +72,24 @@ install_ultra-sync() {
     echo -e "${MAGENTA}${BOLD}[STAGE-3] Enter the destination host details${STOP_COLOR}"
     read -rp "${BLUE}[INPUT REQUIRED] Enter your destination hostname: ${STOP_COLOR}" hostname
     read -rp "${BLUE}[INPUT REQUIRED] Enter your destination host's username: ${STOP_COLOR}" username
-    read -rp "${BLUE}[INPUT REQUIRED] Enter your destination host's password: ${STOP_COLOR}" password
+    read -rsp "${BLUE}[INPUT REQUIRED] Enter your destination host's password: ${STOP_COLOR}" password
+    echo
     read -rp "${BLUE}[INPUT REQUIRED] Enter your destination host's SSH port: ${STOP_COLOR}" port
-
-    sed -i "s/>pass</${password}/g" "${CONFIG_DIR}"/remote_sync_setup.py
-    sed -i "s/>user</${username}/g" "${CONFIG_DIR}"/remote_sync_setup.py
-    sed -i "s/>host</${hostname}/g" "${CONFIG_DIR}"/remote_sync_setup.py
-    sed -i "s/>choice</${choice}/g" "${CONFIG_DIR}"/remote_sync_setup.py
-    sed -i "s/>port</${port}/g" "${CONFIG_DIR}"/remote_sync_setup.py
     echo
 
     echo -e "${MAGENTA}${BOLD}[STAGE-3] Setup cronjob${STOP_COLOR}"
-    "${CONFIG_DIR}"/bin/python3 "${CONFIG_DIR}"/remote_sync_setup.py
+    # credentials go through the environment so the password is never written to disk
+    if ! ULTRA_SYNC_HOST="$hostname" ULTRA_SYNC_USER="$username" ULTRA_SYNC_PASSWORD="$password" ULTRA_SYNC_PORT="$port" "${CONFIG_DIR}"/bin/python3 "${CONFIG_DIR}"/remote_sync_setup.py; then
+        echo -e "${RED}${BOLD}[ERROR] Could not set up SSH key login on '$hostname'. Check the details and try again. Terminating the script ... Bye!${STOP_COLOR}"
+        exit 1
+    fi
 
-    croncmd="rsync -aHAXxv ${DATA_DIR}/* --numeric-ids --info=progress2 --bwlimit=40000 --no-i-r -e 'ssh -p $port -i $HOME/.ssh/id_rsa -T -c aes256-ctr -o Compression=no -x' $username@$hostname:~/Ultra-Sync-target/"
+    # cron has no tty to confirm a new host key, so accept it on first use like the setup step did
+    croncmd="rsync -aHAXxv ${DATA_DIR}/* --numeric-ids --info=progress2 --bwlimit=40000 --no-i-r -e 'ssh -p $port -i $HOME/.ssh/id_rsa -T -c aes256-ctr -o Compression=no -o StrictHostKeyChecking=accept-new -x' $username@$hostname:~/Ultra-Sync-target/"
     cronjob="0 */4 * * * $croncmd"
     (
-        crontab -l 2>/dev/null | grep -v -F "$croncmd" || :
+        # match the target dir, not the whole line, so a reinstall also replaces a line written by an older version
+        crontab -l 2>/dev/null | grep -v -F "Ultra-Sync-target/" || :
         echo "$cronjob"
     ) | crontab -
 
