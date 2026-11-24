@@ -1,12 +1,12 @@
 import subprocess
 from flask import Flask, jsonify, request, abort
-import socket
 import json
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import sqlite3
 import os
 import requests
+import hmac
 
 app = Flask(__name__)
 
@@ -19,13 +19,9 @@ limiter = Limiter(
 
 # Replace with the desired port number
 port = ">port<"
-home_dir = os.getcwd()
-try:
-    # Get the hostname and construct the host URL
-    hostname = socket.gethostname()
-    host = "{}-direct.usbx.me".format(hostname)
-except socket.error as e:
-    print("Error:", e)
+home_dir = os.path.expanduser("~")
+# only nginx connects, the -direct hostname is the public IP and would serve the token over plain HTTP
+host = "127.0.0.1"
 
 # BASIC FUNCTIONS
 
@@ -130,29 +126,18 @@ else:
 # Authentication decorator using the token from the database
 def authenticate(func):
     def wrapper(*args, **kwargs):
-        # Check the header for the token
-        header_token = request.headers.get("Authorization")
+        # header only, a token in the query string is written to the nginx and app logs
+        # header looks like "Authorization: Bearer 0aB1cD2eF3gH4iJ5kL6mN7oP"
+        header_token = request.headers.get("Authorization", "")
+        if header_token.startswith("Bearer "):
+            header_token = header_token[len("Bearer "):]
 
-        # Check the query string for the token
-        query_token = request.args.get("token")  # Updated to read 'token' from query parameters
-
-        if not header_token and not query_token:
+        if not header_token:
             abort(401, "Unauthorized - Token not provided")
-
-        if header_token and header_token.startswith("Bearer "):
-            header_token = header_token.split("Bearer ")[1]
-
-        if query_token and header_token and query_token != header_token:
-            abort(401, "Unauthorized - Token mismatch between header and query parameter")
-
-        if header_token:
-            if header_token != auth_token:
-                abort(401, "Unauthorized - Invalid token in header")
-        elif query_token:
-            if query_token != auth_token:
-                abort(401, "Unauthorized - Invalid token in query parameter")
-        else:
-            abort(401, "Unauthorized - Token not provided")
+        if not auth_token:
+            abort(500, "No auth token found in {}, reinstall Ultra-API".format(db_file_path))
+        if not hmac.compare_digest(header_token.encode(), auth_token.encode()):
+            abort(401, "Unauthorized - Invalid token in header")
 
         return func(*args, **kwargs)
     return wrapper
