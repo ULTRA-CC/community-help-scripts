@@ -242,7 +242,7 @@ class app_monitor():
                     if count <= 0:
                         with open(log_file, "a") as f:
                             f.write(
-                            "\nScript is unable to FIX your {} so please open a support ticket from here - https://my.ultraseedbox.com/submitticket.php\n".format(i))
+                            "\nScript is unable to FIX your {}. Try Upgrade & Repair in the UCP Apps tab.\n".format(i))
                 else:
                     pass            
             else:
@@ -275,7 +275,7 @@ class app_monitor():
             if count <= 2:
                 with open(log_file, "a") as f:
                     f.write(
-                        "\nScript is unable to FIX your {} so please open a support ticket from here - https://my.ultraseedbox.com/submitticket.php\n".format(i))
+                        "\nScript is unable to FIX your {}. Try Upgrade & Repair in the UCP Apps tab.\n".format(i))
 
     def sql_app_monitor(self, apps):
         for i in apps:
@@ -303,7 +303,7 @@ class app_monitor():
                 if count <= 0:
                     with open(log_file, "a") as f:
                         f.write(
-                            "\nScript is unable to FIX your {} so please open a support ticket from here - https://my.ultraseedbox.com/submitticket.php\n".format(i))
+                            "\nScript is unable to FIX your {}. Try Upgrade & Repair in the UCP Apps tab.\n".format(i))
 
             else:
                 pass
@@ -344,7 +344,7 @@ class app_monitor():
                     if count <= thres:
                         with open(log_file, "a") as f:
                             f.write(
-                            "\nScript is unable to FIX your {} so please open a support ticket from here - https://my.ultraseedbox.com/submitticket.php\n".format(i))
+                            "\nScript is unable to FIX your {}. Try Upgrade & Repair in the UCP Apps tab.\n".format(i))
                 else:
                     pass
             else:
@@ -392,7 +392,7 @@ class app_monitor():
                         if count <= thres:
                             with open(log_file, "a") as f:
                                 f.write(
-                                "\nScript is unable to FIX your bazarr so please open a support ticket from here - https://my.ultraseedbox.com/submitticket.php\n")
+                                "\nScript is unable to FIX your bazarr. Try Upgrade & Repair in the UCP Apps tab.\n")
                     else:
                         pass
                 else:
@@ -436,7 +436,7 @@ class app_monitor():
                 if count <= 1:
                     with open(log_file, "a") as f:
                         f.write(
-                            "\nScript is unable to FIX your syncthing so please open a support ticket from here - https://my.ultraseedbox.com/submitticket.php\n")
+                            "\nScript is unable to FIX your syncthing. Try Upgrade & Repair in the UCP Apps tab.\n")
             else:
                 pass
         else:
@@ -476,7 +476,7 @@ class app_monitor():
                     if count <= 0:
                         with open(log_file, "a") as f:
                             f.write(
-                                "\nScript is unable to FIX your jdownloader2 so please open a support ticket from here - https://my.ultraseedbox.com/submitticket.php\n")
+                                "\nScript is unable to FIX your jdownloader2. Try Upgrade & Repair in the UCP Apps tab.\n")
                 else:
                     pass
             else:
@@ -512,7 +512,7 @@ class app_monitor():
                     if count <= 0:
                         with open(log_file, "a") as f:
                             f.write(
-                                "\nScript is unable to FIX your resilio so please open a support ticket from here - https://my.ultraseedbox.com/submitticket.php\n")
+                                "\nScript is unable to FIX your resilio. Try Upgrade & Repair in the UCP Apps tab.\n")
                 else:
                     pass           
             else:
@@ -577,7 +577,7 @@ class app_monitor():
             except requests.exceptions.RequestException as e:
                 with open(log_file, "a") as f:
                         f.write("\nTIME: "+current_time+"\n")
-                        f.write('Please open a ticket'+"\n")
+                        f.write('overseerr could not be reached. Try Upgrade & Repair in the UCP Apps tab.'+"\n")
             
         else:
             pass
@@ -615,7 +615,7 @@ class app_monitor():
             except requests.exceptions.RequestException as e:
                 with open(log_file, "a") as f:
                         f.write("\nTIME: "+current_time+"\n")
-                        f.write('Please open a ticket'+"\n")
+                        f.write('jellyseerr could not be reached. Try Upgrade & Repair in the UCP Apps tab.'+"\n")
             
         else:
             pass    

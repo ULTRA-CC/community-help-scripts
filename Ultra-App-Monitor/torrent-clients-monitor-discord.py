@@ -39,7 +39,7 @@ class app_monitor():
         embed.add_embed_field(name="Application Name:", value=appname)
         embed.add_embed_field(name="Application Status:", value=status,inline=False)
         if fail:
-            embed.add_embed_field(name="Script unable to restart application {}".format(appname), value="https://my.ultraseedbox.com/supporttickets.php",inline=False)
+            embed.add_embed_field(name="Script unable to restart application {}".format(appname), value="Try Upgrade & Repair in the UCP Apps tab.",inline=False)
         webhook.add_embed(embed)
         response = webhook.execute()
     

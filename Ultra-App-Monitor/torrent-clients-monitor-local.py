@@ -72,7 +72,7 @@ class app_monitor():
             if not self.is_running(i):
                 with open(log_file, "a") as f:
                     f.write(
-                        "\nScript is unable to FIX your {} so please open a support ticket from here - https://my.ultraseedbox.com/submitticket.php\n".format(i))
+                        "\nScript is unable to FIX your {}. Try Upgrade & Repair in the UCP Apps tab.\n".format(i))
 
 
 monitor = app_monitor()
