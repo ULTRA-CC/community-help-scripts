@@ -43,7 +43,7 @@ install_ultra-traffic-monitor() {
     mkdir -p ${TMPDIR_LOCATION}
 
     echo -e "${MAGENTA}${BOLD}[STAGE-1] Download and execute mandatory python script${STOP_COLOR}"
-    wget -qO ${TMPDIR_LOCATION}/monitor.py https://scripts.usbx.me/util-v2/Ultra-Traffic-Monitor/monitor.py >/dev/null 2>&1
+    wget -qO ${TMPDIR_LOCATION}/monitor.py https://scripts.ultra.cc/util-v2/Ultra-Traffic-Monitor/monitor.py >/dev/null 2>&1
 
     mv ${TMPDIR_LOCATION}/monitor.py "${CONFIG_DIR}"/
 

@@ -58,7 +58,7 @@ install_ultra-sync() {
     fi
 
     echo -e "${MAGENTA}${BOLD}[STAGE-2] Download and make mandatory python scripts executable${STOP_COLOR}"
-    wget -qO ${TMPDIR_LOCATION}/remote_sync_setup.py https://scripts.usbx.me/util-v2/Ultra-Sync/remote_sync_setup.py >/dev/null 2>&1
+    wget -qO ${TMPDIR_LOCATION}/remote_sync_setup.py https://scripts.ultra.cc/util-v2/Ultra-Sync/remote_sync_setup.py >/dev/null 2>&1
 
     mv ${TMPDIR_LOCATION}/remote_sync_setup.py "${CONFIG_DIR}"/
 

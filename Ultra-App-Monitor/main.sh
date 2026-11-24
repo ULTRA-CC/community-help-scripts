@@ -36,8 +36,8 @@ install_app-monitor-local() {
     echo -e "${YELLOW}${BOLD}[INFO] Virtual environment setup complete at:${STOP_COLOR} ${CONFIG_DIR}\n"
 
     echo -e "${MAGENTA}${BOLD}[STAGE-2] Downloading monitor scripts...${STOP_COLOR}"
-    wget -qO "${CONFIG_DIR}/apps-monitor-local.py" https://scripts.usbx.me/util-v2/Ultra-App-Monitor/apps-monitor-local.py
-    wget -qO "${CONFIG_DIR}/torrent-clients-monitor-local.py" https://scripts.usbx.me/util-v2/Ultra-App-Monitor/torrent-clients-monitor-local.py
+    wget -qO "${CONFIG_DIR}/apps-monitor-local.py" https://scripts.ultra.cc/util-v2/Ultra-App-Monitor/apps-monitor-local.py
+    wget -qO "${CONFIG_DIR}/torrent-clients-monitor-local.py" https://scripts.ultra.cc/util-v2/Ultra-App-Monitor/torrent-clients-monitor-local.py
 
     echo -e "${YELLOW}${BOLD}[INFO] Python scripts downloaded to config directory.${STOP_COLOR}\n"
 
@@ -74,8 +74,8 @@ install_app-monitor-discord() {
     echo -e "${YELLOW}${BOLD}[INFO] Environment ready at:${STOP_COLOR} ${CONFIG_DIR}\n"
 
     echo -e "${MAGENTA}${BOLD}[STAGE-2] Downloading Discord monitoring scripts...${STOP_COLOR}"
-    wget -qO "${CONFIG_DIR}/apps-monitor-discord.py" https://scripts.usbx.me/util-v2/Ultra-App-Monitor/apps-monitor-discord.py
-    wget -qO "${CONFIG_DIR}/torrent-clients-monitor-discord.py" https://scripts.usbx.me/util-v2/Ultra-App-Monitor/torrent-clients-monitor-discord.py
+    wget -qO "${CONFIG_DIR}/apps-monitor-discord.py" https://scripts.ultra.cc/util-v2/Ultra-App-Monitor/apps-monitor-discord.py
+    wget -qO "${CONFIG_DIR}/torrent-clients-monitor-discord.py" https://scripts.ultra.cc/util-v2/Ultra-App-Monitor/torrent-clients-monitor-discord.py
 
     echo -e "${MAGENTA}${BOLD}[STAGE-3] Running once to verify...${STOP_COLOR}"
     "${CONFIG_DIR}/bin/python3" "${CONFIG_DIR}/apps-monitor-discord.py"
