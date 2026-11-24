@@ -1,7 +1,6 @@
 import requests
 from datetime import datetime, timedelta
 from discord_webhook import DiscordWebhook, DiscordEmbed
-import json
 import time
 import os
 import logging
@@ -10,15 +9,16 @@ import argparse
 
 work_dir = os.path.expanduser("~")
 linuxserver_Repo = [["linuxserver", "docker-jackett"], ["linuxserver", "docker-medusa"], ["linuxserver", "docker-ombi"], ["linuxserver", "docker-radarr"], ["linuxserver", "docker-resilio-sync"], ["linuxserver", "docker-mylar3"], ["linuxserver", "docker-pyload-ng"],
-        ["linuxserver", "docker-ubooquity"], ["linuxserver", "docker-overseerr"],["linuxserver", "docker-znc"], ["linuxserver", "docker-bazarr"], ["linuxserver", "docker-emby"], ["linuxserver", "docker-lazylibrarian"], ["linuxserver","docker-plex"], ["linuxserver", "docker-sabnzbd"], ["linuxserver", "docker-syncthing"], ["linuxserver", "docker-lidarr"],["linuxserver", "docker-tautulli"], ["linuxserver", "docker-mariadb"], ["linuxserver", "docker-nzbhydra2"],
-        ["linuxserver", "docker-prowlarr"], ["linuxserver", "docker-sickchill"], ["linuxserver", "docker-wireguard"], ["linuxserver", "docker-doplarr"],["linuxserver","docker-jellyfin"]]
+        ["linuxserver", "docker-ubooquity"], ["linuxserver", "docker-znc"], ["linuxserver", "docker-bazarr"], ["linuxserver", "docker-emby"], ["linuxserver", "docker-lazylibrarian"], ["linuxserver","docker-plex"], ["linuxserver", "docker-sabnzbd"], ["linuxserver", "docker-syncthing"], ["linuxserver", "docker-lidarr"],["linuxserver", "docker-tautulli"], ["linuxserver", "docker-mariadb"], ["linuxserver", "docker-nzbhydra2"],
+        ["linuxserver", "docker-prowlarr"], ["linuxserver", "docker-wireguard"], ["linuxserver","docker-jellyfin"], ["linuxserver", "docker-sonarr"]]
 
 
 
-official_Repo = ["filebrowser/filebrowser","FlareSolverr/FlareSolverr","autobrr/autobrr"]
+# ~/.apps folder names that differ from their linuxserver image name
+image_name_for_folder = {"pyload": "pyload-ng", "resilio": "resilio-sync"}
+
+official_Repo = ["FlareSolverr/FlareSolverr","autobrr/autobrr","seerr-team/seerr"]
 apps_path = work_dir + '/.apps'
-
-readarr_Repo = "linuxserver/readarr"
 
 
 Discord_WebHook_File = '{}/scripts/Ultra-Version-Notifier/discord.txt'.format(work_dir)
@@ -27,7 +27,7 @@ Discord_WebHook_File = '{}/scripts/Ultra-Version-Notifier/discord.txt'.format(wo
 #discord notification function
 def discord_notification(webhook, repo_owner, app_name, color, version, publish_date):
     webhook = DiscordWebhook(url=webhook,username="UltraMan")
-    embed = DiscordEmbed(title='Latest Version Update',description="Apply this release using 'Upgrade & Repair' from UCP OR run 'app-{app_name} upgrade' via SSH.".format(app_name=app_name),  color=color)
+    embed = DiscordEmbed(title='Latest Version Update',description="{app_name} published a new upstream release. Ultra makes new versions available after testing them, so it may not be installable yet.".format(app_name=app_name),  color=color)
     embed.set_author(name='Ultra-Robcop',
                      icon_url='https://pbs.twimg.com/profile_images/1333520282154266624/8Hiizm4w_400x400.jpg')
     embed.set_timestamp()
@@ -45,7 +45,8 @@ def installed_application__linuxserver_Repo(arr1, arr2):
     result = []
     for item in arr2:
         for repo in arr1:
-            if item in repo[1]:
+            # exact name, a substring match sends ubooquity releases to qui users
+            if repo[1] == "docker-" + image_name_for_folder.get(item, item):
                 result.append(repo)
                 break  
     return result
@@ -57,7 +58,7 @@ def installed_application_OfficialRepo(arr2, official_Repo):
     
     for s2 in arr2:
         for repo in official_Repo:
-            if s2 in repo.lower():
+            if s2 == repo.split('/')[1].lower():
                 matched_values.append(repo)
                 break
     
@@ -107,7 +108,7 @@ def Linuxserver_new_release(linuxserver_Repo,webhook):
                 if days_since_release < 1:
                     publish_date_str = published_date.strftime(
                         "%Y-%m-%d %H:%M:%S")
-                    print("Latest release found: {APP}, {version}; Run 'app-{APP} upgrade' to apply it.".format(APP=repo_name[1].replace("docker-",""),version=latest_version))
+                    print("Latest upstream release found: {APP} {version}; Ultra makes it available after testing.".format(APP=repo_name[1].replace("docker-",""),version=latest_version))
                     discord_notification(
                         webhook, repo_name[0], repo_name[1].replace("docker-",""), "14b89f", latest_version, publish_date_str)
                 else:
@@ -142,60 +143,12 @@ def official_latest_versions(repo_urls,webhook):
             current_date = datetime.utcnow()
             difference = current_date - latest_date
             if difference <= timedelta(days=1):
-                print("Latest release found: {app_name} {version}; Run 'app-{app_name} upgrade' to apply it.".format(app_name=appname,version=latest_version))
+                print("Latest upstream release found: {app_name} {version}; Ultra makes it available after testing.".format(app_name=appname,version=latest_version))
                 discord_notification(
                             webhook, repo_name,appname, "14b89f", latest_version, latest_date.strftime("%Y-%m-%d %H:%M:%S"))
             else:
                 pass
             
-def sonarrV4_latest_version(webhook,installed_apps):
-    if "sonarr" in installed_apps:
-        api_url = "https://api.github.com/repos/linuxserver/docker-sonarr/releases"
-        response = requests.get(api_url)
-        if response.status_code == 200:
-            releases = response.json()
-            for release in releases:
-                if release["target_commitish"] == "develop":
-                    publish_time = datetime.strptime(release["published_at"], "%Y-%m-%dT%H:%M:%SZ")
-                    current_time = datetime.utcnow()
-                    time_difference = current_time - publish_time
-            if time_difference.days <= 1:
-                print("Latest release found: {app_name} {version}; Run 'app-{app_name} upgrade' to apply it.".format(app_name="Sonarr-V4",version=release["tag_name"]))
-                discord_notification(
-                            webhook, "linuxserver", "Sonarr-V4", "14b89f", release["tag_name"], publish_time.strftime("%Y-%m-%d %H:%M:%S"))
-            else:
-                pass
-        else:
-            discord_notification(webhook, "linuxserver", "Sonarr-V4", "14b89f", response.status_code, response.status_code)
-   
-
-def readarr_latest_version(repository,webhook,installed_apps):
-    if "readarr" in installed_apps:
-        api_url = "https://hub.docker.com/v2/repositories/{repository}/tags".format(repository=repository)
-        response = requests.get(api_url)
-
-        if response.status_code == 200:
-            data = json.loads(response.text)
-            if data.get("count") > 0:
-                # Iterate over each version and find the latest version released within the last 1 day
-                for result in data["results"]:
-                    version = result["name"]
-                    last_updated = result["last_updated"]
-                    last_updated_datetime = datetime.strptime(last_updated, "%Y-%m-%dT%H:%M:%S.%fZ")
-                
-                    # Check if the version was released within the last 1 day
-                if datetime.now() - last_updated_datetime <= timedelta(days=1):
-                    print("Latest release found: {app_name} {version}; Run 'app-{app_name} upgrade' to apply it.".format(app_name="readarr",version=version))
-                    discord_notification(webhook, "Linuxserver","readarr", "14b89f", version, last_updated_datetime.strftime("%Y-%m-%d %H:%M:%S"))
-                else:
-                    pass
-                
-        else:
-            pass
-
-        return None
-
-
 def send_success_alert():
     webhook_check = os.path.exists(Discord_WebHook_File)
     if webhook_check:
@@ -235,8 +188,6 @@ if __name__ == "__main__":
             Official_installed_apps = installed_application_OfficialRepo(installed_apps, official_Repo)
             Linuxserver_new_release(Linuxserver_installed_apps,webhook)
             official_latest_versions(Official_installed_apps,webhook)
-            sonarrV4_latest_version(webhook,installed_apps)
-            readarr_latest_version(readarr_Repo,webhook,installed_apps)
     elif args.action == "success-alert":
         send_success_alert()
     elif args.action == "webhook-input":
