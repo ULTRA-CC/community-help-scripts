@@ -1,6 +1,5 @@
 import os
 import requests
-import re
 import configparser
 from datetime import datetime
 import logging
@@ -8,6 +7,15 @@ import sys
 import subprocess
 
 THRESHOLD = 90
+# quota exits 1 once any limit is exceeded, and still prints the usage table
+quota_over_limit_exit = 1
+kib_per_unit = {'K': 1, 'M': 1024, 'G': 1024 ** 2, 'T': 1024 ** 3}
+
+
+def to_kib(size):
+    # quota -s sizes look like "512M", with a trailing "*" once over the soft limit
+    size = size.rstrip('*')
+    return int(size[:-1]) * kib_per_unit[size[-1]]
 
 
 class QuotaCheck:
@@ -43,37 +51,28 @@ class QuotaCheck:
             try:
                 output, error = process.communicate(timeout=10)  # Set a timeout value in seconds
             except subprocess.TimeoutExpired:
-                process.terminate()  # Terminate the process if it times out
-                process.wait() 
-                process.kill(9)# Wait for the process to finish
+                process.kill()
+                process.wait()
                 logging.error("Timeout expired while executing 'quota' command.")
-                return None, None, None
+                return None, None
 
-            if process.returncode == 0:
+            if process.returncode in (0, quota_over_limit_exit):
+                # two header lines, then "/dev/sdb1  512M  4000G  4100G ..." (used, soft limit, hard limit)
                 quota = output.decode().split()
-                used_quota_value = re.sub("[^0-9]", "", quota[17])
-                used_quota_metric = re.sub("[^A-Z]", "", quota[17])
-                quota_limit = re.sub("[^0-9]", "", quota[19])
-                return used_quota_metric, used_quota_value, quota_limit
+                if len(quota) < 20:
+                    logging.error(f"Unexpected 'quota -s' output (exit {process.returncode}): {output.decode()!r} {error.decode()!r}")
+                    return None, None
+                return to_kib(quota[17]), to_kib(quota[19])
             else:
                 logging.error(f"Failed to execute 'quota' command. Error: {error.decode()}")
-                return None, None, None
+                return None, None
         except Exception as e:
             logging.error(f"Error in get_quota_value: {str(e)}")
-            return None, None, None
+            return None, None
 
     
-    def quota_percentage(self, used_quota_metric, used_quota_value, quota_limit):
-        used_quota_value = float(used_quota_value)
-        quota_limit = float(quota_limit)
-        if used_quota_metric == "G":
-            quota_percent = (used_quota_value / quota_limit) * 100
-        elif used_quota_metric == "M":
-            used_quota_value = used_quota_value * 0.1027
-            quota_percent = (used_quota_value / quota_limit) * 100
-        else:
-            return 0.0
-        return round(quota_percent, 1)
+    def quota_percentage(self, used_kib, limit_kib):
+        return round(used_kib / limit_kib * 100, 1)
     
     def compare_quota(self, threshold, quota_percent):
         return threshold < quota_percent
@@ -172,9 +171,10 @@ if __name__ == '__main__':
         checker.create_config_file(url, opt)
     else:
         url, value, discord = checker.read_config_file()
-        print(f"URL: {url}, Value: {value}, Discord: {discord}")
-        used_quota_metric, used_quota_value, quota_limit = checker.get_quota_value()
-        quota_percent = checker.quota_percentage(used_quota_metric, used_quota_value, quota_limit)
+        used_kib, limit_kib = checker.get_quota_value()
+        if used_kib is None:
+            sys.exit(1)
+        quota_percent = checker.quota_percentage(used_kib, limit_kib)
         alert = checker.compare_quota(THRESHOLD, quota_percent)
         if not alert:
             checker.update_discord_value("True")

@@ -16,8 +16,7 @@ class TrafficMonitor:
         self.traffic_file = os.path.join(self.base_dir, 'warning.txt')
         self.config_file = os.path.join(self.base_dir, 'conf.ini')
         self.now = datetime.now()
-        self.current_time = self.now.strftime("%H:%M:%S")
-        logging.basicConfig(filename=os.path.join(self.path, "logfilename.log"), level=logging.WARNING)
+        logging.basicConfig(filename=os.path.join(self.base_dir, "logfilename.log"), level=logging.WARNING)
 
     def get_traffic_percent(self):
         try:
@@ -25,8 +24,12 @@ class TrafficMonitor:
             try:
                 output, error = process.communicate(timeout=10)
                 if process.returncode == 0:
-                    traffic_percent = float(output.decode("utf-8").split()[18].replace("%", ""))
-                    return traffic_percent
+                    # the line looks like "  Traffic available: 87.5%"
+                    for line in output.decode("utf-8").splitlines():
+                        if line.strip().startswith("Traffic available:"):
+                            return float(line.split(":")[1].strip().rstrip("%"))
+                    logging.error("No 'Traffic available' line in 'app-traffic info' output: {!r}".format(output.decode()))
+                    return None
                 else:
                     logging.error(f"Command 'app-traffic info' failed with return code {process.returncode}. Error: {error.decode()}")
                     return None
@@ -46,8 +49,9 @@ class TrafficMonitor:
         return traffic_percent <= threshold
 
     def check_installed_torrent_clients(self):
-        installed_torrent_clients = ['qBittorrent', 'rtorrent', 'deluge', 'transmission-daemon']
-        torrent_clients = [client for client in installed_torrent_clients if os.path.exists(f"{self.path}/.config/{client}")]
+        # ~/.config folder name -> app-<name> command
+        installed_torrent_clients = {'qBittorrent': 'qbittorrent', 'rtorrent': 'rtorrent', 'deluge': 'deluge', 'transmission-daemon': 'transmission'}
+        torrent_clients = [app for folder, app in installed_torrent_clients.items() if os.path.exists(f"{self.path}/.config/{folder}")]
         
         for client in torrent_clients:
             try:
@@ -120,8 +124,8 @@ class TrafficMonitor:
             sys.exit(1)
 
     def create_logs(self):
-        logging.basicConfig(filename=os.path.join(self.path, "logfilename.log"), level=logging.INFO)
-        logging.warning(f"TIME {self.current_time}: You have hit your traffic limit")
+        with open(self.traffic_file, 'a') as f:
+            f.write(f"{self.now:%Y-%m-%d %H:%M:%S}: You have hit your traffic limit\n")
 
 if __name__ == '__main__':
     traffic = TrafficMonitor()
@@ -144,14 +148,13 @@ if __name__ == '__main__':
         
         traffic.create_config_file(threshold, option)
     else:
-        status = os.path.exists(traffic.Discord_WebHook_File)
+        traffic_percent = traffic.get_traffic_percent()
+        if traffic_percent is None:
+            sys.exit(1)
+        threshold, C, discord = traffic.read_config_file()
+        val = traffic.check_traffic(traffic_percent, threshold)
 
-        if status:
-            traffic_percent = traffic.get_traffic_percent()
-            threshold, C, discord = traffic.read_config_file()
-            
-            val = traffic.check_traffic(traffic_percent, threshold)
-
+        if os.path.exists(traffic.Discord_WebHook_File):
             if val:
                 if discord == "True":
                     webhook = traffic.discord_webhook_reader()
@@ -162,13 +165,8 @@ if __name__ == '__main__':
                         traffic.check_installed_torrent_clients()
             else:
                 traffic.update_discord_value("True")
-        else:
-            traffic_percent = traffic.get_traffic_percent()
-            threshold, C = traffic.read_config_file()
-            val = traffic.check_traffic(traffic_percent, threshold)
+        elif val:
+            traffic.create_logs()
 
-            if val:
-                traffic.create_logs()
-
-                if C == "yes":
-                    traffic.check_installed_torrent_clients()
+            if C == "yes":
+                traffic.check_installed_torrent_clients()
