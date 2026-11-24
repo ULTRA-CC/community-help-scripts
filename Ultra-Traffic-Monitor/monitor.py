@@ -10,7 +10,7 @@ import subprocess
 class TrafficMonitor:
 
     def __init__(self):
-        self.path = os.getcwd()
+        self.path = os.path.expanduser("~")
         self.base_dir = os.path.join(self.path, 'scripts', 'Ultra-Traffic-Monitor')
         self.Discord_WebHook_File = os.path.join(self.base_dir, 'discord.txt')
         self.traffic_file = os.path.join(self.base_dir, 'warning.txt')

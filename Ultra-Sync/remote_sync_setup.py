@@ -14,7 +14,7 @@ import sys
 import ftplib
 from tqdm import tqdm
 
-home_dir = os.getcwd()
+home_dir = os.path.expanduser("~")
 # username,password and directory
 SyncDir = home_dir + "/Ultra-Sync"
 destination_username = ">user<"

@@ -12,7 +12,7 @@ Data and time to store restart time of application
 now = datetime.datetime.now()
 current_time = now.strftime("%Y-%m-%d %H:%M:%S")
 
-work_dir = os.getcwd()
+work_dir = os.path.expanduser("~")
 log_file = '{}/scripts/Ultra-App-Monitor/apps-monitor-local.log'.format(work_dir)
 torrent_client_list = ['deluge', 'transmission', 'qbittorrent', 'rtorrent']
 apps_path = work_dir + '/.apps'

@@ -8,7 +8,7 @@ import logging
 import sys
 import argparse
 
-work_dir = os.getcwd()
+work_dir = os.path.expanduser("~")
 linuxserver_Repo = [["linuxserver", "docker-jackett"], ["linuxserver", "docker-medusa"], ["linuxserver", "docker-ombi"], ["linuxserver", "docker-radarr"], ["linuxserver", "docker-resilio-sync"], ["linuxserver", "docker-mylar3"], ["linuxserver", "docker-pyload-ng"],
         ["linuxserver", "docker-ubooquity"], ["linuxserver", "docker-overseerr"],["linuxserver", "docker-znc"], ["linuxserver", "docker-bazarr"], ["linuxserver", "docker-emby"], ["linuxserver", "docker-lazylibrarian"], ["linuxserver","docker-plex"], ["linuxserver", "docker-sabnzbd"], ["linuxserver", "docker-syncthing"], ["linuxserver", "docker-lidarr"],["linuxserver", "docker-tautulli"], ["linuxserver", "docker-mariadb"], ["linuxserver", "docker-nzbhydra2"],
         ["linuxserver", "docker-prowlarr"], ["linuxserver", "docker-sickchill"], ["linuxserver", "docker-wireguard"], ["linuxserver", "docker-doplarr"],["linuxserver","docker-jellyfin"]]
